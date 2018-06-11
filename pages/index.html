@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Jordan Bare">
+    <title>Home</title>
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <style>
+        .column{float: left;}
+        .left,.right{min-width:20%;}
+        .middle{width: 60%;}
+        .page{background-color: #333;}
+        ul{list-style-type: none;margin: 0;padding: 0;overflow: hidden;background-color: #333;}
+        li a{display: block;color: white;text-align: center;padding: 14px 16px;text-decoration: none;}
+        li a:hover{background-color: #111;}
+        .active{background-color: #4CAF50;}
+    </style>
+</head>
+<body>
+<div class="row">
+    <div class="column left">Left</div>
+    <div class="column middle">
+        <ul>
+            <li style="float:left"><a href="/">Jordan Bare</a></li>
+            <li style="float:right"><a class="active" href="/blog">Blog</a></li>
+            <li style="float:right"><a href="/about">About</a></li>
+        </ul>
+        <article class="page">
+            <h1>About</h1>
+            <h3></h3>
+        </article>
+    </div>
+    <div class="column right">Right</div>
+</div>
+
+</body>
+</html>
