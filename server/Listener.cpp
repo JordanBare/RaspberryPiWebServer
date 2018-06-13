@@ -2,16 +2,20 @@
 // Created by Jordan Bare on 6/4/18.
 //
 
+#include <fstream>
 #include "Listener.h"
 #include "Session.h"
 
 Listener::Listener(boost::asio::io_context &ioc,
                    boost::asio::ip::tcp::endpoint endpoint,
-                   std::shared_ptr<std::string> &pageRoot):
+                   std::map<unsigned short, std::string> &indexMap,
+                   const std::vector<std::string> &folderRoots):
         mAcceptor(ioc),
         mSessionSocket(ioc),
-        mPageRoot(pageRoot),
+        mIndexMap(indexMap),
+        mFolderRoots(folderRoots),
         mTotalSessions(0) {
+
     boost::system::error_code ec;
     mAcceptor.open(endpoint.protocol(), ec);
 
@@ -47,7 +51,6 @@ void Listener::run() {
 }
 
 void Listener::doAccept() {
-
     mAcceptor.async_accept(mSessionSocket,
                            std::bind(&Listener::onAccept,
                                      shared_from_this(),
@@ -59,7 +62,7 @@ void Listener::onAccept(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::make_shared<Session>(std::move(mSessionSocket), mPageRoot)->run();
+    std::make_shared<Session>(std::move(mSessionSocket), mIndexMap, mFolderRoots)->run();
     mTotalSessions++;
     doAccept();
 }
@@ -75,4 +78,5 @@ void Listener::printErrorCode(boost::system::error_code &ec) {
 unsigned int Listener::reportSessionsHeld() {
     return mTotalSessions;
 }
+
 

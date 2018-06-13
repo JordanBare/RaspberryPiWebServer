@@ -12,10 +12,24 @@ if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
-add_executable(Server server/main.cpp server/Session.cpp server/Session.h server/Listener.cpp server/Listener.h)
+find_package(Cereal)
+
+if(Cereal_FOUND)
+    message(STATUS "Cereal_INCLUDE_DIRS: ${Cereal_INCLUDE_DIRS}")
+    message(STATUS "Cereal_LIBRARIES: ${Cereal_LIBRARIES}")
+    message(STATUS "Cereal_VERSION: ${Cereal_VERSION}")
+
+    include_directories(${Cereal_INCLUDE_DIRS})
+endif()
+
+add_executable(Server server/main.cpp server/Session.cpp server/Session.h server/Listener.cpp server/Listener.h server/Blog.cpp server/Blog.h server/Server.cpp server/Server.h)
 
 if(Boost_FOUND)
     target_link_libraries(Server ${Boost_LIBRARIES})
+endif()
+
+if(Cereal_FOUND)
+    target_link_libraries(Server )
 endif()
 
 
