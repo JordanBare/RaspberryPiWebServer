@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="author" content="Jordan Bare">
-    <title>Home</title>
+    <title>Blog</title>
     <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
     <style>
         .fontColor{color:#CC7832}
@@ -11,10 +11,10 @@
         .column{float:left}
         .side{width:20%}
         .middle{width:60%}
-        ul{list-style-type:none;margin:0;padding:0;overflow:hidden;}
+        ul{list-style-type:none;margin:0;padding:0;overflow:hidden;background-color:#333;}
         li a{display:block;color:white;text-align:center;padding:14px 16px;text-decoration:none;}
-        li a:hover{background-color:#111}
-        .active{background-color:#4CAF50}
+        li a:hover{background-color:#111;}
+        .active{background-color:#4CAF50;}
     </style>
 </head>
 <body style="background-color:#424445">
@@ -22,10 +22,11 @@
     <div class="column side" style="color:#424445">Hi!</div>
     <div class="column middle contentColor">
         <ul class="contentColor">
-            <li style="float:left"><a class="active" href="/">Jordan Bare - Developer</a></li>
+            <li style="float:left"><a href="/">Jordan Bare - Developer</a></li>
             <li style="float:right"><a href="/bloglist">Blogs</a></li>
             <li style="float:right"><a href="/about">About</a></li>
         </ul>
+        <table class="contentColor fontColor" style="padding:14px">blogentry</table>
     </div>
     <div class="column side"></div>
 </div>

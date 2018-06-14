@@ -8,16 +8,18 @@
 #include <iostream>
 
 Server::Server(unsigned short port,
-               unsigned short numThreads,
                boost::asio::io_context &ioContext,
-               std::string rootDir): mNumThreads(numThreads),
-                                     mIOContext(ioContext),
+               std::string rootDir): mIOContext(ioContext),
                                      mFolderRoots({rootDir + "//pages//", rootDir + "//blogs//"}),
                                      mListener(std::make_shared<Listener>(mIOContext,
                                                                         boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"),
                                                                                                        port},
                                                                         mIndexMap, mFolderRoots)){
-    std::ifstream file(mFolderRoots[1] + "blogIndex.txt");
+    readBlogIndexFile();
+}
+
+void Server::readBlogIndexFile() {
+    std::ifstream file(mFolderRoots[1] + "blogindex.txt");
     if(file.is_open()){
         cereal::PortableBinaryInputArchive inputArchive(file);
         mIndexMapMutex.lock();
@@ -25,13 +27,12 @@ Server::Server(unsigned short port,
         mIndexMapMutex.unlock();
         file.close();
     }
-    mWorkerThreads.reserve(mNumThreads);
 }
 
-void Server::run() {
-
+void Server::run(unsigned short numThreads) {
     (*mListener).run();
-    for(unsigned short i = 0; i < mNumThreads; ++i){
+    mWorkerThreads.reserve(numThreads);
+    for(unsigned short i = 0; i < numThreads; ++i){
         mWorkerThreads.emplace_back([this]{
             mIOContext.run();
         });
@@ -57,7 +58,7 @@ void Server::displayMenu() {
             }
 
             case 'c': {
-                createBlog();
+                createBlogFiles();
                 break;
             }
             case 'l': {
@@ -85,19 +86,10 @@ void Server::displayMenu() {
     }
 }
 
-void Server::createBlog() {
-    std::string title;
-    std::cout << "Enter the title: " << std::endl;
-    std::cin.ignore();
-    getline(std::cin,title);
-    std::string content;
-    std::cout << "Enter the content: " << std::endl;
-    getline(std::cin,content);
-    Blog blog(title, content);
-    std::cout << blog.getContent() << std::endl;
+void Server::createBlogFiles() {
 
+    Blog blog = createBlogFromInfo();
     unsigned short newBlogIndex = mIndexMap.size() + 1;
-
     std::ofstream blogFile(mFolderRoots[1] + std::to_string(newBlogIndex) + ".txt");
     if(blogFile.is_open()){
         cereal::PortableBinaryOutputArchive blogFileBinaryOutputArchive(blogFile);
@@ -110,7 +102,19 @@ void Server::createBlog() {
     mIndexMap.emplace(newBlogIndex, blog.getTitle());
     mIndexMapMutex.unlock();
     writeBlogIndexFile();
+    //writeBlogListPageFile();
+}
 
+Blog Server::createBlogFromInfo() const {
+    std::string title;
+    std::cout << "Enter the title: " << std::endl;
+    std::cin.ignore();
+    getline(std::cin, title);
+    std::string content;
+    std::cout << "Enter the content: " << std::endl;
+    getline(std::cin, content);
+    Blog blog(title, content);
+    return blog;
 }
 
 Server::~Server() {
@@ -127,8 +131,8 @@ void Server::destroyBlog(std::string blogToDestroy) {
     mIndexMap.erase(it);
     mIndexMapMutex.unlock();
     writeBlogIndexFile();
-    std::string pathToFileToDeletion(mFolderRoots[1] + std::to_string(blogNumber) + ".txt");
-    std::remove(pathToFileToDeletion.c_str());
+    std::string pathToFileToDelete(mFolderRoots[1] + std::to_string(blogNumber) + ".txt");
+    std::remove(pathToFileToDelete.c_str());
 }
 
 void Server::writeBlogIndexFile() {
@@ -141,5 +145,40 @@ void Server::writeBlogIndexFile() {
         indexFile.flush();
         indexFile.close();
     }
+}
+
+void Server::writeBlogListPageFile() {
+    std::ifstream bloglistTemplateFile(mFolderRoots[0] + "bloglisttemplate.html");
+    std::string blogListPage;
+    if(bloglistTemplateFile.is_open()) {
+        std::stringstream stringstream;
+        stringstream << bloglistTemplateFile.rdbuf();
+        blogListPage = stringstream.str();
+        bloglistTemplateFile.close();
+    }
+    std::stringstream blogListEntryStream;
+    std::map<unsigned short, std::string>::iterator it;
+    for (it = mIndexMap.begin(); it != mIndexMap.end(); ++it) {
+        blogListEntryStream << "<tr>";
+        for(unsigned short i = 0; i != 3 || it != mIndexMap.end(); ++i, ++it){
+            blogListEntryStream << "<td>" <<  "<a href=\"/blog" << it->first << "\">" << it->second << "</a></td>";
+        }
+        std::cout << "should be finished" << std::endl;
+        blogListEntryStream << "</tr>";
+    }
+    std::string stringToFind = "bloglistentry";
+    size_t replacementPosition = blogListPage.find(stringToFind);
+    blogListPage.replace(replacementPosition, stringToFind.length(), blogListEntryStream.str());
+
+    std::ofstream blogListFile(mFolderRoots[0] + "bloglist.html");
+    if(blogListFile.is_open()){
+        mIndexMapMutex.lock();
+        blogListFile << blogListPage;
+        mIndexMapMutex.unlock();
+        blogListFile.flush();
+        blogListFile.close();
+    }
+
+
 }
 

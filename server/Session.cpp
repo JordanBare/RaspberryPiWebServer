@@ -4,9 +4,8 @@
 
 #include <fstream>
 #include <cereal/archives/portable_binary.hpp>
+#include <regex>
 #include "Session.h"
-#include "Blog.h"
-
 
 Session::Session(boost::asio::ip::tcp::socket socket,
                  std::map<unsigned short,std::string> &indexMap,
@@ -54,29 +53,14 @@ void Session::createResponse() {
             resourceFilePath.append(mFolderRoots[0] + "about.html");
         } else if(resource == "/bloglist") {
             resourceFilePath.append(mFolderRoots[0] + "bloglist.html");
-        } else if(resource.find("/blog") != std::string::npos && mIndexMap.count(boost::lexical_cast<unsigned short>(resource.substr(5, resource.size()-1)))) {
-            std::string blogRequested = resource.substr(5, resource.size()-1);
-            resourceFilePath.append(mFolderRoots[1] + blogRequested + ".txt");
+        } else if(checkForRequestedBlog(resource)) {
 
-            Blog blog;
-            std::ifstream file(resourceFilePath);
-            if(file.is_open()){
-                cereal::PortableBinaryInputArchive inputArchive(file);
-                inputArchive(blog);
-                file.close();
-            }
-            resourceFilePath = mFolderRoots[0] + "blog.html";
-            std::string blogString = readFile(resourceFilePath).str();
+            resourceFilePath.append(mFolderRoots[1] + getBlogNumRequested(resource) + ".txt");
+            Blog blog = readBlogFromFile(resourceFilePath);
 
-            std::string stringToFind = "bdate";
-            size_t replacementLocation = blogString.find(stringToFind);
-            blogString.replace(replacementLocation, stringToFind.length(), blog.getDateTime());
-            stringToFind = "btitle";
-            replacementLocation = blogString.find(stringToFind);
-            blogString.replace(replacementLocation, stringToFind.length(), blog.getTitle());
-            stringToFind = "bcontent";
-            replacementLocation = blogString.find(stringToFind);
-            blogString.replace(replacementLocation, stringToFind.length(), blog.getContent());
+            resourceFilePath = mFolderRoots[0] + "blogtemplate.html";
+            std::string blogString = readFile(resourceFilePath);
+            blog.modifyBlogPage(blogString);
 
             boost::beast::ostream(mResponse.body()) << blogString;
             return;
@@ -84,7 +68,18 @@ void Session::createResponse() {
             resourceFilePath.append(mFolderRoots[0] + "404.html");
         }
     }
-    boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath).str();
+    boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
+}
+
+Blog Session::readBlogFromFile(const std::string &resourceFilePath) {
+    Blog blog;
+    std::ifstream file(resourceFilePath);
+    if(file.is_open()){
+                cereal::PortableBinaryInputArchive inputArchive(file);
+                inputArchive(blog);
+                file.close();
+            }
+    return blog;
 }
 
 void Session::processRequest() {
@@ -152,7 +147,7 @@ void Session::printErrorCode(boost::beast::error_code &ec) {
               << std::endl;
 }
 
-std::stringstream Session::readFile(std::string &resourceFilePath) {
+std::string Session::readFile(const std::string &resourceFilePath) const {
     std::ifstream file;
     file.open(resourceFilePath);
     std::stringstream stringstream;
@@ -160,5 +155,14 @@ std::stringstream Session::readFile(std::string &resourceFilePath) {
         stringstream << file.rdbuf();
         file.close();
     }
-    return stringstream;
+    return stringstream.str();
+}
+
+bool Session::checkForRequestedBlog(const std::string &requestString) {
+    std::regex regexFormula("^/blog[1-9][0-9]{0,3}");
+    return std::regex_match(requestString, regexFormula) && mIndexMap.count(boost::lexical_cast<unsigned short>(getBlogNumRequested(requestString)));
+}
+
+std::string Session::getBlogNumRequested(const std::string &requestString) {
+    return requestString.substr(5, requestString.size()-1);
 }

@@ -13,14 +13,18 @@
 
 class Server {
 public:
-    Server(unsigned short port, unsigned short numThreads, boost::asio::io_context &ioContext, std::string rootDir);
+    Server(unsigned short port, boost::asio::io_context &ioContext, std::string rootDir);
     ~Server();
-    void run();
+    void run(unsigned short numThreads);
 private:
     void displayMenu();
-    void createBlog();
+    void createBlogFiles();
     void destroyBlog(std::string blogToDestroy);
-    const unsigned short mNumThreads;
+    void writeBlogIndexFile();
+    void readBlogIndexFile();
+    void writeBlogListPageFile();
+    Blog createBlogFromInfo() const;
+
     boost::asio::io_context& mIOContext;
     std::shared_ptr<Listener> mListener;
     std::vector<std::thread> mWorkerThreads;
@@ -31,8 +35,6 @@ private:
     template <class Archive> void serialize(Archive &ar) {
         ar(mIndexMap);
     }
-
-    void writeBlogIndexFile();
 };
 
 

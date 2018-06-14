@@ -24,6 +24,6 @@ int main() {
     rootDir = "..";
 
     boost::asio::io_context ioContext{numThreads};
-    Server server(port, numThreads, ioContext, rootDir);
-    server.run();
+    Server server(port, ioContext, rootDir);
+    server.run(numThreads);
 }

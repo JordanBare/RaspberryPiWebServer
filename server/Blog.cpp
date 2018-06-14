@@ -12,14 +12,13 @@ Blog::Blog(std::string title, std::string content): mTitle(std::move(title)),
     mDateTime = stream.str();
 }
 
-std::string Blog::getTitle(){
+std::string Blog::getTitle() const {
     return mTitle;
 }
 
-std::string Blog::getContent() {
-    return mContent;
-}
-
-std::string Blog::getDateTime() {
-    return mDateTime;
+void Blog::modifyBlogPage(std::string &blogPage) {
+    std::string stringToFind = "blogEntry";
+    size_t replacementPosition = blogPage.find(stringToFind);
+    std::string blogString = "<h1>" + mTitle + "</h1><h3>" + mDateTime + "</h3><p>" + mContent + "</p>";
+    blogPage.replace(replacementPosition, stringToFind.length(), blogString);
 }

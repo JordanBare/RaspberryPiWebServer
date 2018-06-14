@@ -8,6 +8,7 @@
 #include <memory>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast.hpp>
+#include "Blog.h"
 
 class Session : public std::enable_shared_from_this<Session> {
 public:
@@ -19,16 +20,22 @@ public:
     void createResponse();
     void writeResponse();
     void checkDeadline();
-    std::stringstream readFile(std::string &resourceFilePath);
+    std::string readFile(const std::string &resourceFilePath) const;
 private:
     void printErrorCode(boost::beast::error_code &ec);
+    Blog readBlogFromFile(const std::string &resourceFilePath);
+    bool checkForRequestedBlog(const std::string &requestString);
+    std::string getBlogNumRequested(const std::string &requestString);
     boost::asio::ip::tcp::socket mSocket;
-    boost::beast::flat_buffer mBuffer{8192};
+    //previous flat is 8192
+    boost::beast::flat_buffer mBuffer{1000};
     boost::beast::http::request<boost::beast::http::dynamic_body> mRequest;
     boost::beast::http::response<boost::beast::http::dynamic_body> mResponse;
     boost::asio::basic_waitable_timer<std::chrono::steady_clock> mDeadline;
     std::map<unsigned short, std::string> &mIndexMap;
     const std::vector<std::string> &mFolderRoots;
+
+
 };
 
 
