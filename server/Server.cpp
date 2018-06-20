@@ -102,7 +102,7 @@ void Server::createBlogFiles() {
     mIndexMap.emplace(newBlogIndex, blog.getTitle());
     mIndexMapMutex.unlock();
     writeBlogIndexFile();
-    //writeBlogListPageFile();
+    writeBlogListPageFile();
 }
 
 Blog Server::createBlogFromInfo() const {
@@ -133,6 +133,7 @@ void Server::destroyBlog(std::string blogToDestroy) {
     writeBlogIndexFile();
     std::string pathToFileToDelete(mFolderRoots[1] + std::to_string(blogNumber) + ".txt");
     std::remove(pathToFileToDelete.c_str());
+    writeBlogListPageFile();
 }
 
 void Server::writeBlogIndexFile() {
@@ -148,37 +149,26 @@ void Server::writeBlogIndexFile() {
 }
 
 void Server::writeBlogListPageFile() {
-    std::ifstream bloglistTemplateFile(mFolderRoots[0] + "bloglisttemplate.html");
-    std::string blogListPage;
-    if(bloglistTemplateFile.is_open()) {
-        std::stringstream stringstream;
-        stringstream << bloglistTemplateFile.rdbuf();
-        blogListPage = stringstream.str();
-        bloglistTemplateFile.close();
-    }
-    std::stringstream blogListEntryStream;
+    std::stringstream blogListStream;
+    unsigned short blogCount = 1;
+    blogListStream << "<table id=\"blogs\"><tr>";
     std::map<unsigned short, std::string>::iterator it;
     for (it = mIndexMap.begin(); it != mIndexMap.end(); ++it) {
-        blogListEntryStream << "<tr>";
-        for(unsigned short i = 0; i != 3 || it != mIndexMap.end(); ++i, ++it){
-            blogListEntryStream << "<td>" <<  "<a href=\"/blog" << it->first << "\">" << it->second << "</a></td>";
+        blogListStream << "<td>" <<  "<button onclick=\"loadDoc('/blog" << it->first << "')\">" << it->second << "</button></td>";
+        if(blogCount % 3 == 0){
+            blogListStream << "</tr><tr>";
         }
-        std::cout << "should be finished" << std::endl;
-        blogListEntryStream << "</tr>";
+        blogCount++;
     }
-    std::string stringToFind = "bloglistentry";
-    size_t replacementPosition = blogListPage.find(stringToFind);
-    blogListPage.replace(replacementPosition, stringToFind.length(), blogListEntryStream.str());
+    blogListStream << "</tr></table>";
 
-    std::ofstream blogListFile(mFolderRoots[0] + "bloglist.html");
+    std::ofstream blogListFile(mFolderRoots[0] + "blogs.html");
     if(blogListFile.is_open()){
         mIndexMapMutex.lock();
-        blogListFile << blogListPage;
+        blogListFile << blogListStream.str();
         mIndexMapMutex.unlock();
         blogListFile.flush();
         blogListFile.close();
     }
-
-
 }
 

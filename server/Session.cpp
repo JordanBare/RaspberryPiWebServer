@@ -49,20 +49,17 @@ void Session::createResponse() {
         std::string resource = mRequest.target().to_string();
         if(resource == "/"){
             resourceFilePath.append(mFolderRoots[0] + "index.html");
+        } else if(resource == "/favicon.ico"){
+            resourceFilePath.append(mFolderRoots[0] + "favicon.ico");
+            mResponse.set(boost::beast::http::field::content_type, "image/vnd.microsoft.icon");
         } else if(resource == "/about") {
             resourceFilePath.append(mFolderRoots[0] + "about.html");
-        } else if(resource == "/bloglist") {
-            resourceFilePath.append(mFolderRoots[0] + "bloglist.html");
+        } else if(resource == "/blogs") {
+            resourceFilePath.append(mFolderRoots[0] + "blogs.html");
         } else if(checkForRequestedBlog(resource)) {
-
             resourceFilePath.append(mFolderRoots[1] + getBlogNumRequested(resource) + ".txt");
             Blog blog = readBlogFromFile(resourceFilePath);
-
-            resourceFilePath = mFolderRoots[0] + "blogtemplate.html";
-            std::string blogString = readFile(resourceFilePath);
-            blog.modifyBlogPage(blogString);
-
-            boost::beast::ostream(mResponse.body()) << blogString;
+            boost::beast::ostream(mResponse.body()) << blog.getBlogPage();
             return;
         } else {
             resourceFilePath.append(mFolderRoots[0] + "404.html");

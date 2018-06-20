@@ -16,7 +16,7 @@ public:
     Blog() = default;
     Blog(std::string title, std::string content);
     std::string getTitle() const;
-    void modifyBlogPage(std::string &blogPage);
+    std::string getBlogPage();
 private:
     friend class cereal::access;
     template <class Archive> void serialize(Archive &ar) {

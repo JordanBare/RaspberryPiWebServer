@@ -3,29 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="author" content="Jordan Bare">
+    <meta name="keywords" content="encyption, Boost Asio">
     <title>Home</title>
-    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <style>
         .fontColor{color:#CC7832}
         .contentColor{background-color:#333}
         .column{float:left;min-height:1px}
         .side{width:20%}
         .middle{width:60%}
-        ul{list-style-type:none;margin:0;padding:0;overflow:hidden;}
-        li a{display:block;color:white;text-align:center;padding:14px 16px;text-decoration:none;}
-        li a:hover{background-color:#111}
-        .active{background-color:#4CAF50}
+        ul{list-style-type:none;margin:0;padding:0;overflow:hidden}
+        li button{display:block;background-color:#4CAF50;text-align:center;padding:14px 16px;text-decoration:none}
+        li button:hover{background-color:#111}
+        table{table-layout:fixed;width:100%}
+        td{text-align:center;width:33%}
     </style>
+    <script>
+        function loadDoc(resource){
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {document.getElementById("content").innerHTML = this.responseText;};
+            xhttp.open("GET", resource, true);
+            xhttp.send();
+        }
+    </script>
 </head>
 <body style="background-color:#424445">
 <div class="contentColor">
     <div class="column side"></div>
     <div class="column middle contentColor">
         <ul class="contentColor">
-            <li style="float:left"><a class="active" href="/">Jordan Bare - Developer</a></li>
-            <li style="float:right"><a href="/bloglist">Blogs</a></li>
-            <li style="float:right"><a href="/about">About</a></li>
+            <li style="float:left"><button id="h" onclick="loadDoc('')">Jordan Bare - Developer</button></li>
+            <li style="float:right"><button id="b" onclick="loadDoc('/blogs')">Blogs</button></li>
+            <li style="float:right"><button id="a" onclick="loadDoc('/about')">About</button></li>
         </ul>
+        <div id="content"></div>
     </div>
     <div class="column side"></div>
 </div>

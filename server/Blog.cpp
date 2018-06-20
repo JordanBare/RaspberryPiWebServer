@@ -16,9 +16,8 @@ std::string Blog::getTitle() const {
     return mTitle;
 }
 
-void Blog::modifyBlogPage(std::string &blogPage) {
-    std::string stringToFind = "blogentry"; //make sure this matches what's on the page
-    size_t replacementPosition = blogPage.find(stringToFind);
-    std::string blogString = "<h1>" + mTitle + "</h1><h3>" + mDateTime + "</h3><p>" + mContent + "</p>";
-    blogPage.replace(replacementPosition, stringToFind.length(), blogString);
+std::string Blog::getBlogPage() {
+    std::string blogString = "<article class=\"contentColor fontColor\" style=\"padding:14px\"><h1>"
+                             + mTitle + "</h1><h3>" + mDateTime + "</h3><p>" + mContent + "</p></article>";
+    return blogString;
 }

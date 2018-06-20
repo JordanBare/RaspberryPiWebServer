@@ -5,10 +5,7 @@
 #include "Server.h"
 #include <boost/asio/io_context.hpp>
 
-Blog createBlog();
-
 int main() {
-
     unsigned short port;
     unsigned short numThreads;
     std::string rootDir;
