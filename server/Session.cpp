@@ -52,11 +52,11 @@ void Session::createResponse() {
         } else if(resource == "/favicon.ico"){
             resourceFilePath.append(mFolderRoots[0] + "favicon.ico");
             mResponse.set(boost::beast::http::field::content_type, "image/vnd.microsoft.icon");
-        } else if(resource == "/about") {
+        } else if(resource == "/about"){
             resourceFilePath.append(mFolderRoots[0] + "about.html");
-        } else if(resource == "/blogs") {
+        } else if(resource == "/blogs"){
             resourceFilePath.append(mFolderRoots[0] + "blogs.html");
-        } else if(checkForRequestedBlog(resource)) {
+        } else if(checkForRequestedBlog(resource)){
             resourceFilePath.append(mFolderRoots[1] + getBlogNumRequested(resource) + ".txt");
             Blog blog = readBlogFromFile(resourceFilePath);
             boost::beast::ostream(mResponse.body()) << blog.getBlogPage();
@@ -72,10 +72,10 @@ Blog Session::readBlogFromFile(const std::string &resourceFilePath) {
     Blog blog;
     std::ifstream file(resourceFilePath);
     if(file.is_open()){
-                cereal::PortableBinaryInputArchive inputArchive(file);
-                inputArchive(blog);
-                file.close();
-            }
+        cereal::PortableBinaryInputArchive inputArchive(file);
+        inputArchive(blog);
+        file.close();
+    }
     return blog;
 }
 

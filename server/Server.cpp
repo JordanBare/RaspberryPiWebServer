@@ -56,7 +56,6 @@ void Server::displayMenu() {
                 std::cout << "Sessions held: " << (*mListener).reportSessionsHeld() << std::endl;
                 break;
             }
-
             case 'c': {
                 createBlogFiles();
                 break;
@@ -94,7 +93,6 @@ void Server::createBlogFiles() {
     if(blogFile.is_open()){
         cereal::PortableBinaryOutputArchive blogFileBinaryOutputArchive(blogFile);
         blogFileBinaryOutputArchive(blog);
-        blogFile.flush();
         blogFile.close();
     }
 
@@ -143,7 +141,6 @@ void Server::writeBlogIndexFile() {
         mIndexMapMutex.lock();
         indexFileBinaryOutputArchive(mIndexMap);
         mIndexMapMutex.unlock();
-        indexFile.flush();
         indexFile.close();
     }
 }
@@ -151,10 +148,10 @@ void Server::writeBlogIndexFile() {
 void Server::writeBlogListPageFile() {
     std::stringstream blogListStream;
     unsigned short blogCount = 1;
-    blogListStream << "<table id=\"blogs\"><tr>";
+    blogListStream << "<br><br><table id=\"blogs\"><tr>";
     std::map<unsigned short, std::string>::iterator it;
     for (it = mIndexMap.begin(); it != mIndexMap.end(); ++it) {
-        blogListStream << "<td>" <<  "<button onclick=\"loadDoc('/blog" << it->first << "')\">" << it->second << "</button></td>";
+        blogListStream << "<td><button onclick=\"loadDoc('/blog" << it->first << "')\">" << it->second << "</button></td>";
         if(blogCount % 3 == 0){
             blogListStream << "</tr><tr>";
         }
@@ -167,7 +164,6 @@ void Server::writeBlogListPageFile() {
         mIndexMapMutex.lock();
         blogListFile << blogListStream.str();
         mIndexMapMutex.unlock();
-        blogListFile.flush();
         blogListFile.close();
     }
 }
