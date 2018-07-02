@@ -9,11 +9,12 @@
 #include <memory>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl/context.hpp>
 #include "Blog.h"
 
 class Listener : public std::enable_shared_from_this<Listener> {
 public:
-    Listener(boost::asio::io_context& ioc, boost::asio::ip::tcp::endpoint endpoint, std::map<unsigned short, std::string> &indexMap, const std::vector<std::string> &folderRoots);
+    Listener(boost::asio::io_context& ioc, boost::asio::ssl::context &sslContext, boost::asio::ip::tcp::endpoint endpoint, std::map<unsigned short, std::string> &indexMap, std::string rootDir);
     void run();
     void doAccept();
     void onAccept(boost::system::error_code ec);
@@ -23,8 +24,10 @@ private:
 
     boost::asio::ip::tcp::acceptor mAcceptor;
     boost::asio::ip::tcp::socket mSessionSocket;
+    boost::asio::io_context& mIOContext;
+    boost::asio::ssl::context& mSSLContext;
     std::map<unsigned short, std::string> &mIndexMap;
-    const std::vector<std::string> &mFolderRoots;
+    const std::vector<std::string> mFolderRoots;
     std::atomic<unsigned int> mTotalSessions;
 };
 

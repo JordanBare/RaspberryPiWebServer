@@ -7,13 +7,16 @@
 #include "Session.h"
 
 Listener::Listener(boost::asio::io_context &ioc,
+                   boost::asio::ssl::context &sslContext,
                    boost::asio::ip::tcp::endpoint endpoint,
                    std::map<unsigned short, std::string> &indexMap,
-                   const std::vector<std::string> &folderRoots):
+                   std::string rootDir):
         mAcceptor(ioc),
         mSessionSocket(ioc),
+        mIOContext(ioc),
+        mSSLContext(sslContext),
         mIndexMap(indexMap),
-        mFolderRoots(folderRoots),
+        mFolderRoots({rootDir + "//pages//", rootDir + "//blogs//"}),
         mTotalSessions(0) {
 
     boost::system::error_code ec;
@@ -62,7 +65,7 @@ void Listener::onAccept(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::make_shared<Session>(std::move(mSessionSocket), mIndexMap, mFolderRoots)->run();
+    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mIndexMap, mFolderRoots)->run();
     mTotalSessions++;
     doAccept();
 }

@@ -4,26 +4,53 @@
 
 #include <fstream>
 #include <cereal/archives/portable_binary.hpp>
+#include <boost/asio/bind_executor.hpp>
 #include <regex>
 #include "Session.h"
 
-Session::Session(boost::asio::ip::tcp::socket socket,
+Session::Session(boost::asio::ssl::context& sslContext,
+                 boost::asio::ip::tcp::socket socket,
                  std::map<unsigned short,std::string> &indexMap,
                  const std::vector<std::string> &folderRoots): mSocket(std::move(socket)),
-                                                               mDeadline(mSocket.get_executor().context(),
-                                                                         std::chrono::seconds(60)),
+                                                               mStream(mSocket, sslContext),
+                                                               mStrand(mSocket.get_executor()),
                                                                mIndexMap(indexMap),
                                                                mFolderRoots(folderRoots){
 }
 
 void Session::run() {
     std::cout << "Running session" << std::endl;
+    mStream.async_handshake(boost::asio::ssl::stream_base::server,
+                            boost::asio::bind_executor(mStrand,
+                                                       std::bind(&Session::onHandshake,
+                                                                 shared_from_this(),
+                                                                 std::placeholders::_1)));
+}
+
+void Session::onHandshake(boost::system::error_code ec) {
+    if(ec){
+        std::cout << "Handshake error" << std::endl;
+        printErrorCode(ec);
+        return;
+    }
+    std::cout << "Handshake successful" << std::endl;
     readRequest();
 }
 
 void Session::readRequest() {
-    checkDeadline();
-    auto self = shared_from_this();
+    mRequest = {};
+    //auto self = shared_from_this();
+    std::cout << "Reading request" << std::endl;
+    boost::beast::http::async_read(mStream,
+                                   mBuffer,
+                                   mRequest,
+                                   boost::asio::bind_executor(mStrand,
+                                                              std::bind(&Session::handleReadRequest,
+                                                                        shared_from_this(),
+                                                                        std::placeholders::_1,
+                                                                        std::placeholders::_2)));
+
+    /*
     boost::beast::http::async_read(mSocket,
                                    mBuffer,
                                    mRequest,
@@ -36,9 +63,46 @@ void Session::readRequest() {
         }
         self->processRequest();
     });
+     */
+    std::cout << "Read request" << std::endl;
+}
+
+void Session::handleReadRequest(boost::system::error_code ec, std::size_t bytes_transferred) {
+    boost::ignore_unused(bytes_transferred);
+    if(ec == boost::beast::http::error::end_of_stream){
+        std::cout << "End of Stream" << std::endl;
+        return close();
+    }
+    if(ec){
+        return printErrorCode(ec);
+    }
+    processRequest();
+}
+
+void Session::processRequest() {
+    mResponse.version(mRequest.version());
+    mResponse.keep_alive(true);
+    mResponse.set(boost::beast::http::field::server, "Boost Beast");
+    switch(mRequest.method()){
+        case boost::beast::http::verb::get:
+            createResponse();
+            break;
+        case boost::beast::http::verb::post:
+            break;
+        default:
+            mResponse.result(boost::beast::http::status::bad_request);
+            mResponse.set(boost::beast::http::field::content_type, "text/plain");
+            boost::beast::ostream(mResponse.body())
+                    << "Invalid request method '"
+                    << mRequest.method_string().to_string()
+                    << "'";
+            break;
+    }
+    writeResponse();
 }
 
 void Session::createResponse() {
+    mResponse.result(boost::beast::http::status::ok);
     mResponse.set(boost::beast::http::field::content_type, "text/html");
     std::string resourceFilePath;
     if(mRequest.target().empty() ||
@@ -68,44 +132,9 @@ void Session::createResponse() {
     boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
 }
 
-Blog Session::readBlogFromFile(const std::string &resourceFilePath) {
-    Blog blog;
-    std::ifstream file(resourceFilePath);
-    if(file.is_open()){
-        cereal::PortableBinaryInputArchive inputArchive(file);
-        inputArchive(blog);
-        file.close();
-    }
-    return blog;
-}
-
-void Session::processRequest() {
-    mResponse.version(mRequest.version());
-    mResponse.keep_alive(true);
-    switch(mRequest.method()){
-        case boost::beast::http::verb::get:
-            mResponse.result(boost::beast::http::status::ok);
-            mResponse.set(boost::beast::http::field::server, "Boost Beast");
-            createResponse();
-            break;
-        default:
-            mResponse.result(boost::beast::http::status::bad_request);
-            mResponse.set(boost::beast::http::field::content_type, "text/plain");
-            boost::beast::ostream(mResponse.body())
-                    << "Invalid request method '"
-                    << mRequest.method_string().to_string()
-                    << "'";
-            break;
-    }
-    mRequest = {};
-    writeResponse();
-}
-
 void Session::writeResponse() {
+    /*
     auto self = shared_from_this();
-
-    mResponse.set(boost::beast::http::field::content_length, mResponse.body().size());
-
     boost::beast::http::async_write(mSocket,
                                     mResponse,
                                     [self](boost::beast::error_code ec, std::size_t){
@@ -117,23 +146,53 @@ void Session::writeResponse() {
         self->mDeadline.cancel();
         self->readRequest();
     });
+     */
+    mResponse.set(boost::beast::http::field::content_length, mResponse.body().size());
+    boost::beast::http::async_write(mStream,
+                                    mResponse,
+                                    boost::asio::bind_executor(mStrand,
+                                                               std::bind(&Session::handleWriteResponse,
+                                                                         shared_from_this(),
+                                                                         std::placeholders::_1,
+                                                                         std::placeholders::_2)));
 }
 
-void Session::checkDeadline() {
-    auto self = shared_from_this();
-    mDeadline.async_wait([self](boost::beast::error_code ec){
-        if(!ec){
-            std::cout << "Timeout" << std::endl;
-            self->mSocket.shutdown(boost::asio::ip::tcp::socket::shutdown_receive, ec);
-        }
-    });
+void Session::handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred) {
+    boost::ignore_unused(bytes_transferred);
+    if(ec){
+        printErrorCode(ec);
+        close();
+        return;
+    }
+    mResponse = {};
+    std::cout << "Sending response" << std::endl;
+    readRequest();
 }
 
-Session::~Session() {
-    boost::system::error_code ec;
-    mSocket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-    mSocket.close();
-    std::cout << "Session terminated" << std::endl;
+void Session::close() {
+    mStream.async_shutdown(boost::asio::bind_executor(
+            mStrand,
+            std::bind(&Session::onShutdown,
+                      shared_from_this(),
+                      std::placeholders::_1)));
+}
+
+void Session::onShutdown(boost::system::error_code ec) {
+    if(ec){
+        printErrorCode(ec);
+    }
+    std::cout << "Connection is closed" << std::endl;
+}
+
+Blog Session::readBlogFromFile(const std::string &resourceFilePath) {
+    Blog blog;
+    std::ifstream file(resourceFilePath);
+    if(file.is_open()){
+        cereal::PortableBinaryInputArchive inputArchive(file);
+        inputArchive(blog);
+        file.close();
+    }
+    return blog;
 }
 
 void Session::printErrorCode(boost::beast::error_code &ec) {

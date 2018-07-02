@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "-lssl -lcrypto")
 project(Server)
 
 find_package(Boost 1.67.0 COMPONENTS system filesystem REQUIRED)
@@ -29,7 +30,7 @@ if(Boost_FOUND)
 endif()
 
 if(Cereal_FOUND)
-    target_link_libraries(Server )
+    target_link_libraries(Server ${Cereal_LIBRARIES})
 endif()
 
 

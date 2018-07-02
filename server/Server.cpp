@@ -8,26 +8,36 @@
 #include <iostream>
 
 Server::Server(unsigned short port,
-               boost::asio::io_context &ioContext,
-               std::string rootDir): mIOContext(ioContext),
-                                     mFolderRoots({rootDir + "//pages//", rootDir + "//blogs//"}),
+               unsigned short numThreads,
+               std::string rootDir): mIOContext(numThreads),
+                                     mSSLContext(boost::asio::ssl::context::tlsv12_server),
+                                     mRootDir(rootDir),
                                      mListener(std::make_shared<Listener>(mIOContext,
-                                                                        boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"),
-                                                                                                       port},
-                                                                        mIndexMap, mFolderRoots)){
-    readBlogIndexFile();
+                                                                          mSSLContext,
+                                                                          boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"), port},
+                                                                        mIndexMap,
+                                                                          rootDir)){
+
+    mSSLContext.set_options(boost::asio::ssl::context::default_workarounds |
+                            boost::asio::ssl::context::no_sslv2 |
+                            boost::asio::ssl::context::no_sslv3 |
+                            boost::asio::ssl::context::no_tlsv1 |
+                            boost::asio::ssl::context::no_tlsv1_1 |
+                            boost::asio::ssl::context::single_dh_use);
+    loadCertificate();
+    //readBlogIndexFile();
 }
 
+/*
 void Server::readBlogIndexFile() {
     std::ifstream file(mFolderRoots[1] + "blogindex.txt");
     if(file.is_open()){
         cereal::PortableBinaryInputArchive inputArchive(file);
-        mIndexMapMutex.lock();
         inputArchive(mIndexMap);
-        mIndexMapMutex.unlock();
         file.close();
     }
 }
+ */
 
 void Server::run(unsigned short numThreads) {
     (*mListener).run();
@@ -57,7 +67,7 @@ void Server::displayMenu() {
                 break;
             }
             case 'c': {
-                createBlogFiles();
+                //createBlogFiles();
                 break;
             }
             case 'l': {
@@ -74,7 +84,7 @@ void Server::displayMenu() {
                     break;
                 }
                 std::cout << blogNumber << std::endl;
-                destroyBlog(blogNumber);
+                //destroyBlog(blogNumber);
                 break;
             }
             default: {
@@ -85,6 +95,7 @@ void Server::displayMenu() {
     }
 }
 
+/*
 void Server::createBlogFiles() {
 
     Blog blog = createBlogFromInfo();
@@ -95,13 +106,11 @@ void Server::createBlogFiles() {
         blogFileBinaryOutputArchive(blog);
         blogFile.close();
     }
-
-    mIndexMapMutex.lock();
     mIndexMap.emplace(newBlogIndex, blog.getTitle());
-    mIndexMapMutex.unlock();
     writeBlogIndexFile();
     writeBlogListPageFile();
 }
+
 
 Blog Server::createBlogFromInfo() const {
     std::string title;
@@ -114,6 +123,7 @@ Blog Server::createBlogFromInfo() const {
     Blog blog(title, content);
     return blog;
 }
+*/
 
 Server::~Server() {
     mIOContext.stop();
@@ -122,12 +132,26 @@ Server::~Server() {
     }
 }
 
+void Server::loadCertificate() {
+    std::string password;
+    std::cout << "Please enter the password for the certs: " << std::endl;
+    password = "password";
+    mSSLContext.set_password_callback(std::bind(&Server::get_Password,this));
+    mSSLContext.use_certificate_chain_file(mRootDir + "/cert/server.crt");
+    mSSLContext.use_private_key_file(mRootDir + "/cert/server.key", boost::asio::ssl::context::pem);
+    mSSLContext.use_tmp_dh_file(mRootDir + "/cert/dh2048.pem");
+}
+
+std::string Server::get_Password() {
+    return "password";
+}
+
+
+/*
 void Server::destroyBlog(std::string blogToDestroy) {
     unsigned short blogNumber = boost::lexical_cast<unsigned short>(blogToDestroy);
     auto it = mIndexMap.find(blogNumber);
-    mIndexMapMutex.lock();
     mIndexMap.erase(it);
-    mIndexMapMutex.unlock();
     writeBlogIndexFile();
     std::string pathToFileToDelete(mFolderRoots[1] + std::to_string(blogNumber) + ".txt");
     std::remove(pathToFileToDelete.c_str());
@@ -138,9 +162,7 @@ void Server::writeBlogIndexFile() {
     std::ofstream indexFile(mFolderRoots[1] + "blogIndex.txt");
     if(indexFile.is_open()){
         cereal::PortableBinaryOutputArchive indexFileBinaryOutputArchive(indexFile);
-        mIndexMapMutex.lock();
         indexFileBinaryOutputArchive(mIndexMap);
-        mIndexMapMutex.unlock();
         indexFile.close();
     }
 }
@@ -161,10 +183,9 @@ void Server::writeBlogListPageFile() {
 
     std::ofstream blogListFile(mFolderRoots[0] + "blogs.html");
     if(blogListFile.is_open()){
-        mIndexMapMutex.lock();
         blogListFile << blogListStream.str();
-        mIndexMapMutex.unlock();
         blogListFile.close();
     }
 }
+ */
 
