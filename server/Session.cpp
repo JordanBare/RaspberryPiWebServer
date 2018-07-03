@@ -15,7 +15,8 @@ Session::Session(boost::asio::ssl::context& sslContext,
                                                                mStream(mSocket, sslContext),
                                                                mStrand(mSocket.get_executor()),
                                                                mIndexMap(indexMap),
-                                                               mFolderRoots(folderRoots){
+                                                               mFolderRoots(folderRoots),
+                                                               mAuthorized(false){
 }
 
 void Session::run() {
@@ -39,7 +40,6 @@ void Session::onHandshake(boost::system::error_code ec) {
 
 void Session::readRequest() {
     mRequest = {};
-    //auto self = shared_from_this();
     std::cout << "Reading request" << std::endl;
     boost::beast::http::async_read(mStream,
                                    mBuffer,
@@ -49,22 +49,6 @@ void Session::readRequest() {
                                                                         shared_from_this(),
                                                                         std::placeholders::_1,
                                                                         std::placeholders::_2)));
-
-    /*
-    boost::beast::http::async_read(mSocket,
-                                   mBuffer,
-                                   mRequest,
-                                   [self](boost::beast::error_code ec,
-                                          std::size_t bytes_transferred){
-        boost::ignore_unused(bytes_transferred);
-        if(ec){
-            self->printErrorCode(ec);
-            return;
-        }
-        self->processRequest();
-    });
-     */
-    std::cout << "Read request" << std::endl;
 }
 
 void Session::handleReadRequest(boost::system::error_code ec, std::size_t bytes_transferred) {
@@ -85,9 +69,10 @@ void Session::processRequest() {
     mResponse.set(boost::beast::http::field::server, "Boost Beast");
     switch(mRequest.method()){
         case boost::beast::http::verb::get:
-            createResponse();
+            createGetResponse();
             break;
         case boost::beast::http::verb::post:
+            createPostResponse();
             break;
         default:
             mResponse.result(boost::beast::http::status::bad_request);
@@ -101,13 +86,11 @@ void Session::processRequest() {
     writeResponse();
 }
 
-void Session::createResponse() {
+void Session::createGetResponse() {
     mResponse.result(boost::beast::http::status::ok);
     mResponse.set(boost::beast::http::field::content_type, "text/html");
     std::string resourceFilePath;
-    if(mRequest.target().empty() ||
-       mRequest.target()[0] != '/' ||
-       mRequest.target().find("..") != boost::beast::string_view::npos){
+    if(forbiddenCheck()){
         resourceFilePath.append(mFolderRoots[0] + "403.html");
     } else {
         std::string resource = mRequest.target().to_string();
@@ -120,6 +103,10 @@ void Session::createResponse() {
             resourceFilePath.append(mFolderRoots[0] + "about.html");
         } else if(resource == "/blogs"){
             resourceFilePath.append(mFolderRoots[0] + "blogs.html");
+        } else if(resource == "/login"){
+            resourceFilePath.append(mFolderRoots[0] + "login.html");
+        } else if(resource == "/admin" && mAuthorized){
+            resourceFilePath.append(mFolderRoots[0] + "admin.html");
         } else if(checkForRequestedBlog(resource)){
             resourceFilePath.append(mFolderRoots[1] + getBlogNumRequested(resource) + ".txt");
             Blog blog = readBlogFromFile(resourceFilePath);
@@ -132,21 +119,42 @@ void Session::createResponse() {
     boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
 }
 
-void Session::writeResponse() {
-    /*
-    auto self = shared_from_this();
-    boost::beast::http::async_write(mSocket,
-                                    mResponse,
-                                    [self](boost::beast::error_code ec, std::size_t){
-                                        self->mResponse = {};
-        if(ec){
-            self->printErrorCode(ec);
-            return;
+void Session::createPostResponse(){
+    mResponse.result(boost::beast::http::status::ok);
+    mResponse.set(boost::beast::http::field::content_type, "text/html");
+    std::string resourceFilePath;
+    if(forbiddenCheck()){
+        resourceFilePath.append(mFolderRoots[0] + "403.html");
+    } else {
+        std::string resource = mRequest.target().to_string();
+        if(resource == "/checkcreds"){
+            std::string body = mRequest.body();
+            unsigned long middle = body.find("&pwd");
+            std::string usr = body.substr(4, middle-4);
+            std::string pwd = body.substr(middle+5, body.size()-1);
+            std::cout << usr << " " << pwd << std::endl;
+            if(usr == "user" && pwd == "pass"){
+                mAuthorized = true;
+                resourceFilePath.append(mFolderRoots[0] + "admin.html");
+            } else {
+                mAuthorized = false;
+                resourceFilePath.append(mFolderRoots[0] + "login.html");
+            }
+        } else {
+            resourceFilePath.append(mFolderRoots[0] + "404.html");
         }
-        self->mDeadline.cancel();
-        self->readRequest();
-    });
-     */
+
+    }
+    boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
+}
+
+bool Session::forbiddenCheck() const{
+    return mRequest.target().empty() ||
+           mRequest.target()[0] != '/' ||
+           mRequest.target().find("..") != boost::beast::string_view::npos;
+}
+
+void Session::writeResponse() {
     mResponse.set(boost::beast::http::field::content_length, mResponse.body().size());
     boost::beast::http::async_write(mStream,
                                     mResponse,

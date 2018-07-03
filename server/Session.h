@@ -23,7 +23,9 @@ private:
     void readRequest();
     void handleReadRequest(boost::system::error_code ec, std::size_t bytes_transferred);
     void processRequest();
-    void createResponse();
+    void createGetResponse();
+    void createPostResponse();
+    bool forbiddenCheck() const;
     void writeResponse();
     void handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred);
     void close();
@@ -39,10 +41,11 @@ private:
     boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
     //previous flat is 8192
     boost::beast::flat_buffer mBuffer{8192};
-    boost::beast::http::request<boost::beast::http::dynamic_body> mRequest;
+    boost::beast::http::request<boost::beast::http::string_body> mRequest;
     boost::beast::http::response<boost::beast::http::dynamic_body> mResponse;
     std::map<unsigned short, std::string> &mIndexMap;
     const std::vector<std::string> &mFolderRoots;
+    bool mAuthorized;
 };
 
 
