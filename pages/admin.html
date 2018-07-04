@@ -3,12 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin</title>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <style>.center{margin:auto;width:40%}.txt{font-size:16pt}.submit{width:50%}textarea{font-size:16pt}</style>
 </head>
-<body>
-<h1>Hi from admin</h1>
-<div>
-    <form action="/addblog" method="post"></form>
-    <form action="/deleteblog" method=""></form>
+<body style="background-color:#333">
+<div class="center">
+    <h1>Hi from admin</h1>
+    <form action="/addblog" method="post" id="blogform">
+        <input class="txt" name="title" type="text" size="40">
+        <br><br>
+        <textarea form="blogform" name="blog" rows="10" cols="60" maxlength="2500"></textarea>
+        <input name="csrftoken" type="hidden" value="CSRF">
+        <br><br><input class="submit txt" type="submit" value="Submit">
+    </form>
+    <br><br>
+    <form action="/deleteblog" method="post">
+        <input class="txt" name="id" type="password" size="6" maxlength="6">
+        <input name="csrftoken" type="hidden" value="CSRF">
+        <br><br><input class="submit txt" type="submit" value="Submit">
+    </form>
 </div>
 </body>
 </html>

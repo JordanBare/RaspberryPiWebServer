@@ -129,8 +129,8 @@ void Session::createPostResponse(){
         std::string resource = mRequest.target().to_string();
         if(resource == "/checkcreds"){
             std::string body = mRequest.body();
-            unsigned long middle = body.find("&pwd");
-            std::string usr = body.substr(4, middle-4);
+            unsigned long middle = body.find("&pwd=");
+            std::string usr = body.substr(4, middle-5);
             std::string pwd = body.substr(middle+5, body.size()-1);
             std::cout << usr << " " << pwd << std::endl;
             if(usr == "user" && pwd == "pass"){
@@ -229,4 +229,17 @@ bool Session::checkForRequestedBlog(const std::string &requestString) {
 
 std::string Session::getBlogNumRequested(const std::string &requestString) {
     return requestString.substr(5, requestString.size()-1);
+}
+
+void Session::insertCSRFToken(std::string &page) {
+    unsigned char buffer[16];
+    RAND_pseudo_bytes(buffer,16);
+    mCSRFToken = reinterpret_cast<char*>(buffer);
+    boost::replace_all(page, "CSRF", mCSRFToken);
+}
+
+bool Session::csrfCheck() const {
+    std::string body = mRequest.body();
+    std::string bodyCSRF = body.substr(body.find("csrftoken="), body.length()-1);
+    return bodyCSRF == mCSRFToken;
 }

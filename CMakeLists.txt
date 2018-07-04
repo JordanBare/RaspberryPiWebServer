@@ -13,6 +13,16 @@ if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
+find_package(OpenSSL)
+
+if(OpenSSL_FOUND)
+    message(STATUS "OpenSSL_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+    message(STATUS "OpenSSL_LIBRARIES: ${Boost_LIBRARIES}")
+    message(STATUS "OpenSSL_VERSION: ${Boost_VERSION}")
+
+    include_directories(${OpenSSL_INCLUDE_DIRS})
+endif()
+
 find_package(Cereal)
 
 if(Cereal_FOUND)
@@ -31,6 +41,10 @@ endif()
 
 if(Cereal_FOUND)
     target_link_libraries(Server ${Cereal_LIBRARIES})
+endif()
+
+if(OpenSSL_FOUND)
+    target_link_libraries(Server ${OpenSSL_LIBRARIES})
 endif()
 
 

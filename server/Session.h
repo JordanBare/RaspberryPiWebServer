@@ -26,6 +26,8 @@ private:
     void createGetResponse();
     void createPostResponse();
     bool forbiddenCheck() const;
+    void insertCSRFToken(std::string &page);
+    bool csrfCheck() const;
     void writeResponse();
     void handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred);
     void close();
@@ -46,6 +48,7 @@ private:
     std::map<unsigned short, std::string> &mIndexMap;
     const std::vector<std::string> &mFolderRoots;
     bool mAuthorized;
+    std::string mCSRFToken;
 };
 
 
