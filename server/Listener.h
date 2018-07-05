@@ -10,6 +10,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/context.hpp>
+#include <set>
 #include "Blog.h"
 
 class Listener : public std::enable_shared_from_this<Listener> {
@@ -27,6 +28,7 @@ private:
     boost::asio::io_context& mIOContext;
     boost::asio::ssl::context& mSSLContext;
     std::map<unsigned short, std::string> &mIndexMap;
+    std::set<std::string> mCSRFSet;
     const std::vector<std::string> mFolderRoots;
     std::atomic<unsigned int> mTotalSessions;
 };

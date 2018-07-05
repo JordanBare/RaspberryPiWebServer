@@ -65,7 +65,7 @@ void Listener::onAccept(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mIndexMap, mFolderRoots)->run();
+    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFSet, mIndexMap, mFolderRoots)->run();
     mTotalSessions++;
     doAccept();
 }
