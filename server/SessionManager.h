@@ -5,17 +5,15 @@
 #ifndef SERVER_LISTENER_H
 #define SERVER_LISTENER_H
 
-
-#include <memory>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <set>
 #include "Blog.h"
 
-class Listener : public std::enable_shared_from_this<Listener> {
+class SessionManager : public std::enable_shared_from_this<SessionManager> {
 public:
-    Listener(boost::asio::io_context& ioc, boost::asio::ssl::context &sslContext, boost::asio::ip::tcp::endpoint endpoint, std::map<unsigned short, std::string> &indexMap, std::string rootDir);
+    SessionManager(boost::asio::io_context& ioc, boost::asio::ssl::context &sslContext, boost::asio::ip::tcp::endpoint endpoint, std::map<unsigned short, std::string> &indexMap, std::string rootDir);
     void run();
     void doAccept();
     void onAccept(boost::system::error_code ec);

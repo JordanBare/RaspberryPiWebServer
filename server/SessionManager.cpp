@@ -3,10 +3,10 @@
 //
 
 #include <fstream>
-#include "Listener.h"
+#include "SessionManager.h"
 #include "Session.h"
 
-Listener::Listener(boost::asio::io_context &ioc,
+SessionManager::SessionManager(boost::asio::io_context &ioc,
                    boost::asio::ssl::context &sslContext,
                    boost::asio::ip::tcp::endpoint endpoint,
                    std::map<unsigned short, std::string> &indexMap,
@@ -46,21 +46,21 @@ Listener::Listener(boost::asio::io_context &ioc,
     }
 }
 
-void Listener::run() {
+void SessionManager::run() {
     if(!mAcceptor.is_open()){
         return;
     }
     doAccept();
 }
 
-void Listener::doAccept() {
+void SessionManager::doAccept() {
     mAcceptor.async_accept(mSessionSocket,
-                           std::bind(&Listener::onAccept,
+                           std::bind(&SessionManager::onAccept,
                                      shared_from_this(),
                                      std::placeholders::_1));
 }
 
-void Listener::onAccept(boost::system::error_code ec) {
+void SessionManager::onAccept(boost::system::error_code ec) {
     if(ec){
         printErrorCode(ec);
         return;
@@ -70,7 +70,7 @@ void Listener::onAccept(boost::system::error_code ec) {
     doAccept();
 }
 
-void Listener::printErrorCode(boost::system::error_code &ec) {
+void SessionManager::printErrorCode(boost::system::error_code &ec) {
     std::cout << "Error code: "
                  << ec.value()
                  << " | Message : "
@@ -78,7 +78,7 @@ void Listener::printErrorCode(boost::system::error_code &ec) {
                     << std::endl;
 }
 
-unsigned int Listener::reportSessionsHeld() {
+unsigned int SessionManager::reportSessionsHeld() {
     return mTotalSessions;
 }
 

@@ -7,7 +7,7 @@
 
 
 #include <thread>
-#include "Listener.h"
+#include "SessionManager.h"
 #include <cereal/access.hpp>
 #include <cereal/types/map.hpp>
 #include <boost/asio/ssl/context.hpp>
@@ -33,7 +33,7 @@ private:
     boost::asio::io_context mIOContext;
     boost::asio::ssl::context mSSLContext;
     std::string mRootDir;
-    std::shared_ptr<Listener> mListener;
+    std::shared_ptr<SessionManager> mSessionManager;
     std::vector<std::thread> mWorkerThreads;
     std::map<unsigned short,std::string> mIndexMap;
     friend class cereal::access;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-lssl -lcrypto")
 project(Server)
 
@@ -33,7 +33,7 @@ if(Cereal_FOUND)
     include_directories(${Cereal_INCLUDE_DIRS})
 endif()
 
-add_executable(Server server/main.cpp server/Session.cpp server/Session.h server/Listener.cpp server/Listener.h server/Blog.cpp server/Blog.h server/Server.cpp server/Server.h)
+add_executable(Server server/main.cpp server/Session.cpp server/Session.h server/SessionManager.cpp server/SessionManager.h server/Blog.cpp server/Blog.h server/Server.cpp server/Server.h)
 
 if(Boost_FOUND)
     target_link_libraries(Server ${Boost_LIBRARIES})

@@ -15,7 +15,7 @@ Session::Session(boost::asio::ssl::context  &sslContext,
                  const std::vector<std::string> &folderRoots): mSocket(std::move(socket)),
                                                                mStream(mSocket, sslContext),
                                                                mStrand(mSocket.get_executor()),
-                                                               mDeadline(mSocket.get_executor().context(),std::chrono::seconds(10)),
+                                                               mDeadline(mSocket.get_executor().context(),std::chrono::seconds(60)),
                                                                mCSRFSet(csrfSet),
                                                                mIndexMap(indexMap),
                                                                mFolderRoots(folderRoots),
@@ -23,7 +23,7 @@ Session::Session(boost::asio::ssl::context  &sslContext,
 }
 
 void Session::run() {
-    std::cout << "Session created" << std::endl;
+    std::cout << "1: Session created" << std::endl;
     mStream.async_handshake(boost::asio::ssl::stream_base::server,
                             boost::asio::bind_executor(mStrand,
                                                        std::bind(&Session::onHandshake,
@@ -37,14 +37,14 @@ void Session::onHandshake(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::cout << "Handshake successful" << std::endl;
+    std::cout << "2: Handshake successful" << std::endl;
     readRequest();
 }
 
 void Session::readRequest() {
     mRequest = {};
     checkDeadline();
-    std::cout << "Reading request" << std::endl;
+    std::cout << "3: Reading request" << std::endl;
     boost::beast::http::async_read(mStream,
                                    mBuffer,
                                    mRequest,
@@ -170,6 +170,7 @@ bool Session::forbiddenCheck() const{
 }
 
 void Session::writeResponse() {
+    std::cout << "4: Writing response" << std::endl;
     mResponse.set(boost::beast::http::field::content_length, mResponse.body().size());
     boost::beast::http::async_write(mStream,
                                     mResponse,
@@ -189,7 +190,6 @@ void Session::handleWriteResponse(boost::system::error_code ec, std::size_t byte
         return;
     }
     mResponse = {};
-    std::cout << "Sending response" << std::endl;
     readRequest();
 }
 
@@ -243,14 +243,14 @@ std::string Session::getBlogNumRequested(const std::string &requestString) {
     return requestString.substr(1, requestString.size()-1);
 }
 
-std::string Session::insertCSRFToken(std::string &resourceFilePath) {
+std::string Session::insertCSRFToken(const std::string &resourceFilePath) {
     std::cout << "Creating token" << std::endl;
     std::random_device rd;
     static thread_local std::mt19937 re{rd()};
     std::uniform_int_distribution<int> urd(97,122);
     do {
         std::stringstream randomStream;
-        for(int i=0; i < 20;++i){
+        for(int i=0;i < 20;++i){
             randomStream << char(urd(re));
         }
         mCSRFToken = randomStream.str();
@@ -261,11 +261,11 @@ std::string Session::insertCSRFToken(std::string &resourceFilePath) {
     return page;
 }
 
-bool Session::csrfTokenCheck() const {
-    std::string body = mRequest.body();
-    unsigned long tokenIndex = body.find("_csrf=");
+bool Session::csrfTokenCheck() {
+    std::string requestBody = mRequest.body();
+    unsigned long tokenIndex = requestBody.find("_csrf=");
     //always change indexes based on csrf token name
-    std::string requestCSRFToken = body.substr(tokenIndex+6, tokenIndex+26);
+    std::string requestCSRFToken = requestBody.substr(tokenIndex+6, tokenIndex+26);
     if(requestCSRFToken == mCSRFToken){
         mCSRFSet.erase(mCSRFToken);
         return true;
@@ -274,7 +274,6 @@ bool Session::csrfTokenCheck() const {
 }
 
 Session::~Session() {
-    mCSRFSet.erase(mCSRFToken);
     std::cout << "Session terminated" << std::endl;
 }
 
@@ -285,6 +284,11 @@ void Session::checkDeadline() {
 void Session::onDeadlineCheck(boost::system::error_code ec) {
     if(!ec){
         std::cout << "Timer expired" << std::endl;
+        mCSRFSet.erase(mCSRFToken);
         close();
     }
+}
+
+void Session::sanitizeInput(std::string &input) {
+
 }

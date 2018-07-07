@@ -12,11 +12,11 @@ Server::Server(unsigned short port,
                std::string rootDir): mIOContext(numThreads),
                                      mSSLContext(boost::asio::ssl::context::tlsv12_server),
                                      mRootDir(rootDir),
-                                     mListener(std::make_shared<Listener>(mIOContext,
-                                                                          mSSLContext,
-                                                                          boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"), port},
-                                                                        mIndexMap,
-                                                                          rootDir)){
+                                     mSessionManager(std::make_shared<SessionManager>(mIOContext,
+                                                                                      mSSLContext,
+                                                                                      boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"), port},
+                                                                                      mIndexMap,
+                                                                                      mRootDir)){
 
     mSSLContext.set_options(boost::asio::ssl::context::default_workarounds |
                             boost::asio::ssl::context::no_sslv2 |
@@ -40,7 +40,7 @@ void Server::readBlogIndexFile() {
  */
 
 void Server::run(unsigned short numThreads) {
-    (*mListener).run();
+    (*mSessionManager).run();
     mWorkerThreads.reserve(numThreads);
     for(unsigned short i = 0; i < numThreads; ++i){
         mWorkerThreads.emplace_back([this]{
@@ -53,7 +53,7 @@ void Server::run(unsigned short numThreads) {
 void Server::displayMenu() {
     char option;
     bool accessOptions = true;
-    const std::string options = "\nOptions:\nt : Terminate program\ns : Sessions held\nl : List blogs\nc : Create blog\nd : Destroy blog";
+    const std::string options = "\nOptions:\nt : Terminate program\ns : Sessions held";
     while(accessOptions){
         std::cout << options << std::endl;
         std::cin >> option;
@@ -63,28 +63,7 @@ void Server::displayMenu() {
                 break;
             }
             case 's': {
-                std::cout << "Sessions held: " << (*mListener).reportSessionsHeld() << std::endl;
-                break;
-            }
-            case 'c': {
-                //createBlogFiles();
-                break;
-            }
-            case 'l': {
-                for(auto const& it : mIndexMap) {
-                    std::cout << it.first << ": " << it.second << std::endl;
-                }
-                break;
-            }
-            case 'd': {
-                std::string blogNumber;
-                std::cout << "Enter the number of the blog to be destroyed (Press n to stop): " << std::endl;
-                std::cin >> blogNumber;
-                if(blogNumber == "n"){
-                    break;
-                }
-                std::cout << blogNumber << std::endl;
-                //destroyBlog(blogNumber);
+                std::cout << "Sessions held: " << (*mSessionManager).reportSessionsHeld() << std::endl;
                 break;
             }
             default: {

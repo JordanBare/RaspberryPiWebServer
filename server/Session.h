@@ -5,7 +5,6 @@
 #ifndef SERVER_HTTPWORKER_H
 #define SERVER_HTTPWORKER_H
 
-#include <memory>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio/ssl/context.hpp>
@@ -28,8 +27,8 @@ private:
     void createGetResponse();
     void createPostResponse();
     bool forbiddenCheck() const;
-    std::string insertCSRFToken(std::string &resourceFilePath);
-    bool csrfTokenCheck() const;
+    std::string insertCSRFToken(const std::string &resourceFilePath);
+    bool csrfTokenCheck();
     void writeResponse();
     void handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred);
     void close();
@@ -41,6 +40,7 @@ private:
     std::string getBlogNumRequested(const std::string &requestString);
     void checkDeadline();
     void onDeadlineCheck(boost::system::error_code ec);
+    void sanitizeInput(std::string &input);
 
     boost::asio::ip::tcp::socket mSocket;
     boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> mStream;

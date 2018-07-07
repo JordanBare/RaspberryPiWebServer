@@ -1,7 +1,5 @@
 
 #include <iostream>
-#include "Session.h"
-#include "Listener.h"
 #include "Server.h"
 
 int main() {
@@ -21,7 +19,7 @@ int main() {
 
     //boost::asio::io_context ioContext{numThreads};
     //Server server(port, ioContext, rootDir);
-    Server server(port, numThreads, rootDir);
-    server.run(numThreads);
+    std::unique_ptr<Server> server = std::make_unique<Server>(port, numThreads, rootDir);
+    (*server).run(numThreads);
 }
 
