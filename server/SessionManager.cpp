@@ -9,15 +9,15 @@
 SessionManager::SessionManager(boost::asio::io_context &ioc,
                    boost::asio::ssl::context &sslContext,
                    boost::asio::ip::tcp::endpoint endpoint,
-                   std::map<unsigned short, std::string> &indexMap,
                    std::string rootDir):
         mAcceptor(ioc),
         mSessionSocket(ioc),
         mIOContext(ioc),
         mSSLContext(sslContext),
-        mIndexMap(indexMap),
         mFolderRoots({rootDir + "//pages//", rootDir + "//blogs//"}),
-        mTotalSessions(0) {
+        mTotalSessions(0),
+        mCSRFManager(std::make_unique<CSRFManager>()),
+        mBlogManager(std::make_unique<BlogManager>(mFolderRoots)){
 
     boost::system::error_code ec;
     mAcceptor.open(endpoint.protocol(), ec);
@@ -65,17 +65,13 @@ void SessionManager::onAccept(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFSet, mIndexMap, mFolderRoots)->run();
+    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFManager, mBlogManager, mFolderRoots)->run();
     mTotalSessions++;
     doAccept();
 }
 
 void SessionManager::printErrorCode(boost::system::error_code &ec) {
-    std::cout << "Error code: "
-                 << ec.value()
-                 << " | Message : "
-                    << ec.message()
-                    << std::endl;
+    std::cout << "Error code: " << ec.value() << " | Message : " << ec.message() << std::endl;
 }
 
 unsigned int SessionManager::reportSessionsHeld() {

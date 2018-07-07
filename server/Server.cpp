@@ -4,8 +4,6 @@
 
 #include <fstream>
 #include "Server.h"
-#include <cereal/archives/portable_binary.hpp>
-#include <iostream>
 
 Server::Server(unsigned short port,
                unsigned short numThreads,
@@ -15,7 +13,6 @@ Server::Server(unsigned short port,
                                      mSessionManager(std::make_shared<SessionManager>(mIOContext,
                                                                                       mSSLContext,
                                                                                       boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"), port},
-                                                                                      mIndexMap,
                                                                                       mRootDir)){
 
     mSSLContext.set_options(boost::asio::ssl::context::default_workarounds |
@@ -28,16 +25,6 @@ Server::Server(unsigned short port,
     //readBlogIndexFile();
 }
 
-/*
-void Server::readBlogIndexFile() {
-    std::ifstream file(mFolderRoots[1] + "blogindex.txt");
-    if(file.is_open()){
-        cereal::PortableBinaryInputArchive inputArchive(file);
-        inputArchive(mIndexMap);
-        file.close();
-    }
-}
- */
 
 void Server::run(unsigned short numThreads) {
     (*mSessionManager).run();
@@ -88,19 +75,6 @@ void Server::createBlogFiles() {
     mIndexMap.emplace(newBlogIndex, blog.getTitle());
     writeBlogIndexFile();
     writeBlogListPageFile();
-}
-
-
-Blog Server::createBlogFromInfo() const {
-    std::string title;
-    std::cout << "Enter the title: " << std::endl;
-    std::cin.ignore();
-    getline(std::cin, title);
-    std::string content;
-    std::cout << "Enter the content: " << std::endl;
-    getline(std::cin, content);
-    Blog blog(title, content);
-    return blog;
 }
 */
 

@@ -10,15 +10,15 @@
 
 Session::Session(boost::asio::ssl::context  &sslContext,
                  boost::asio::ip::tcp::socket socket,
-                 std::set<std::string> &csrfSet,
-                 std::map<unsigned short,std::string> &indexMap,
+                 std::unique_ptr<CSRFManager> &csrfManager,
+                 std::unique_ptr<BlogManager> &blogManager,
                  const std::vector<std::string> &folderRoots): mSocket(std::move(socket)),
                                                                mStream(mSocket, sslContext),
                                                                mStrand(mSocket.get_executor()),
                                                                mDeadline(mSocket.get_executor().context(),std::chrono::seconds(60)),
-                                                               mCSRFSet(csrfSet),
-                                                               mIndexMap(indexMap),
-                                                               mFolderRoots(folderRoots),
+                                                               mCSRFManager(csrfManager),
+                                                               mBlogManager(blogManager),
+                                                               mPageRoot(folderRoots[0]),
                                                                mAuthorized(false){
 }
 
@@ -96,13 +96,12 @@ void Session::createGetResponse() {
     mResponse.set(boost::beast::http::field::content_type, "text/html");
     std::string resourceFilePath;
     if(forbiddenCheck()){
-        resourceFilePath.append(mFolderRoots[0] + "403.html");
+        resourceFilePath.append(mPageRoot + "403.html");
     } else {
         std::string resource = mRequest.target().to_string();
-        if(checkForBlogRequest(resource)){
-            resourceFilePath.append(mFolderRoots[1]);
+        if(mBlogManager->checkForBlog(resource)){
         } else {
-            resourceFilePath.append(mFolderRoots[0]);
+            resourceFilePath.append(mPageRoot);
             if(resource == "/"){
                 resourceFilePath.append("index.html");
             } else if(resource == "/favicon.ico"){
@@ -131,13 +130,13 @@ void Session::createGetResponse() {
 void Session::createPostResponse(){
     mResponse.result(boost::beast::http::status::ok);
     mResponse.set(boost::beast::http::field::content_type, "text/html");
-    std::string resourceFilePath = mFolderRoots[0];
+    std::string resourceFilePath = mPageRoot;
     if(forbiddenCheck()){
         resourceFilePath.append("403.html");
     } else {
         std::string resource = mRequest.target().to_string();
+        std::string body = mRequest.body();
         if(resource == "/checkcreds"){
-            std::string body = mRequest.body();
             unsigned long pwdLoc = body.find("&pwd=");
             std::string usr = body.substr(4, pwdLoc-4);
             unsigned long csrfLoc = body.find("&_csrf=");
@@ -156,6 +155,10 @@ void Session::createPostResponse(){
                 mAuthorized = false;
             }
             resourceFilePath.append("login.html");
+        } else if(resource == "/addblog"){
+
+        } else if(resource == "/removeblog"){
+
         } else {
             resourceFilePath.append("404.html");
         }
@@ -208,17 +211,6 @@ void Session::onShutdown(boost::system::error_code ec) {
     std::cout << "Connection is closed" << std::endl;
 }
 
-Blog Session::readBlogFromFile(const std::string &resourceFilePath) {
-    Blog blog;
-    std::ifstream file(resourceFilePath);
-    if(file.is_open()){
-        cereal::PortableBinaryInputArchive inputArchive(file);
-        inputArchive(blog);
-        file.close();
-    }
-    return blog;
-}
-
 void Session::printErrorCode(boost::beast::error_code &ec) {
     std::cout << "Error code: " << ec.value() << " | Message : " << ec.message() << std::endl;
 }
@@ -234,28 +226,8 @@ std::string Session::readFile(const std::string &resourceFilePath) const {
     return stringstream.str();
 }
 
-bool Session::checkForBlogRequest(const std::string &requestString) {
-    std::regex regexFormula("^/[1-9][0-9]{0,4}");
-    return std::regex_match(requestString, regexFormula);
-}
-
-std::string Session::getBlogNumRequested(const std::string &requestString) {
-    return requestString.substr(1, requestString.size()-1);
-}
-
 std::string Session::insertCSRFToken(const std::string &resourceFilePath) {
-    std::cout << "Creating token" << std::endl;
-    std::random_device rd;
-    static thread_local std::mt19937 re{rd()};
-    std::uniform_int_distribution<int> urd(97,122);
-    do {
-        std::stringstream randomStream;
-        for(int i=0;i < 20;++i){
-            randomStream << char(urd(re));
-        }
-        mCSRFToken = randomStream.str();
-    } while(mCSRFSet.find(mCSRFToken) != mCSRFSet.end());
-    mCSRFSet.emplace(mCSRFToken);
+    mCSRFToken = (mCSRFManager->addToken());
     std::string page = readFile(resourceFilePath);
     boost::replace_all(page, "CSRF", mCSRFToken);
     return page;
@@ -267,7 +239,7 @@ bool Session::csrfTokenCheck() {
     //always change indexes based on csrf token name
     std::string requestCSRFToken = requestBody.substr(tokenIndex+6, tokenIndex+26);
     if(requestCSRFToken == mCSRFToken){
-        mCSRFSet.erase(mCSRFToken);
+        mCSRFManager->removeToken(mCSRFToken);
         return true;
     }
     return false;
@@ -284,7 +256,7 @@ void Session::checkDeadline() {
 void Session::onDeadlineCheck(boost::system::error_code ec) {
     if(!ec){
         std::cout << "Timer expired" << std::endl;
-        mCSRFSet.erase(mCSRFToken);
+        mCSRFManager->removeToken(mCSRFToken);
         close();
     }
 }

@@ -8,12 +8,12 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/context.hpp>
-#include <set>
-#include "Blog.h"
+#include "CSRFManager.h"
+#include "BlogManager.h"
 
 class SessionManager : public std::enable_shared_from_this<SessionManager> {
 public:
-    SessionManager(boost::asio::io_context& ioc, boost::asio::ssl::context &sslContext, boost::asio::ip::tcp::endpoint endpoint, std::map<unsigned short, std::string> &indexMap, std::string rootDir);
+    SessionManager(boost::asio::io_context& ioc, boost::asio::ssl::context &sslContext, boost::asio::ip::tcp::endpoint endpoint, std::string rootDir);
     void run();
     void doAccept();
     void onAccept(boost::system::error_code ec);
@@ -25,9 +25,9 @@ private:
     boost::asio::ip::tcp::socket mSessionSocket;
     boost::asio::io_context& mIOContext;
     boost::asio::ssl::context& mSSLContext;
-    std::map<unsigned short, std::string> &mIndexMap;
-    std::set<std::string> mCSRFSet;
     const std::vector<std::string> mFolderRoots;
+    std::unique_ptr<CSRFManager> mCSRFManager;
+    std::unique_ptr<BlogManager> mBlogManager;
     std::atomic<unsigned int> mTotalSessions;
 };
 

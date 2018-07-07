@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin</title>
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
     <style>.center{margin:auto;width:40%}.txt{font-size:16pt}.submit{width:50%}textarea{font-size:16pt}</style>
 </head>
 <body style="background-color:#333">
@@ -17,8 +17,8 @@
         <br><br><input class="submit txt" type="submit" value="Submit">
     </form>
     <br><br>
-    <form action="/deleteblog" method="post">
-        <input class="txt" name="id" type="password" size="6" maxlength="6">
+    <form action="/removeblog" method="post">
+        <input class="txt" name="id" type="text" size="6" maxlength="6">
         <input name="_csrf" type="hidden" value="CSRF">
         <br><br><input class="submit txt" type="submit" value="Submit">
     </form>

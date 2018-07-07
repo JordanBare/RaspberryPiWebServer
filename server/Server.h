@@ -8,8 +8,6 @@
 
 #include <thread>
 #include "SessionManager.h"
-#include <cereal/access.hpp>
-#include <cereal/types/map.hpp>
 #include <boost/asio/ssl/context.hpp>
 
 class Server {
@@ -35,12 +33,6 @@ private:
     std::string mRootDir;
     std::shared_ptr<SessionManager> mSessionManager;
     std::vector<std::thread> mWorkerThreads;
-    std::map<unsigned short,std::string> mIndexMap;
-    friend class cereal::access;
-    template <class Archive> void serialize(Archive &ar) {
-        ar(mIndexMap);
-    }
 };
-
 
 #endif //SERVER_SERVER_H
