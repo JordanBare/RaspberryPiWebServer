@@ -8,7 +8,6 @@
 #include "BlogManager.h"
 
 BlogManager::BlogManager(const std::vector<std::string> &folderRoots): mBlogDir(folderRoots[1]), mRegexFormula("^/[1-9][0-9]{0,4}") {
-
     readBlogIndexFile();
 }
 
@@ -35,12 +34,13 @@ std::unique_ptr<Blog> BlogManager::readBlogFromFile(const std::string &resourceF
 std::unique_ptr<Blog> BlogManager::createBlogFromSubmission(const std::string &blogContent) {
 
 
-    unsigned long titleLoc = blogContent.find("&title=");
+    unsigned long titleLoc = blogContent.find("title=");
     unsigned long blogLoc = blogContent.find("&blog=");
-    std::string usr = blogContent.substr(5, blogLoc-5);
-    std::string title;
-    std::string content;
-    std::unique_ptr<Blog> blog = std::make_unique<Blog>();
+    unsigned long tokenLoc = blogContent.find("&_csrf=");
+    std::string title = blogContent.substr(titleLoc+6, blogLoc-6);
+    std::string content = blogContent.substr(blogLoc+6, tokenLoc-18);
+    std::unique_ptr<Blog> blog = std::make_unique<Blog>(title,content);
+    std::cout << "Title: " << title << "\nBlog: " << content << std::endl;
     return blog;
 }
 

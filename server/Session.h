@@ -27,8 +27,6 @@ private:
     void createGetResponse();
     void createPostResponse();
     bool forbiddenCheck() const;
-    std::string insertCSRFToken(const std::string &resourceFilePath);
-    bool csrfTokenCheck();
     void writeResponse();
     void handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred);
     void close();
@@ -37,12 +35,11 @@ private:
     std::string readFile(const std::string &resourceFilePath) const;
     void checkDeadline();
     void onDeadlineCheck(boost::system::error_code ec);
-    void sanitizeInput(std::string &input);
 
     boost::asio::ip::tcp::socket mSocket;
     boost::asio::ssl::stream<boost::asio::ip::tcp::socket&> mStream;
     boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
-    const std::string &mPageRoot;
+    const std::string mPageRoot;
     bool mAuthorized;
     std::unique_ptr<CSRFManager> &mCSRFManager;
     std::unique_ptr<BlogManager> &mBlogManager;

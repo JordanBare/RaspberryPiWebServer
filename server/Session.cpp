@@ -59,12 +59,15 @@ void Session::handleReadRequest(boost::system::error_code ec, std::size_t bytes_
     boost::ignore_unused(bytes_transferred);
     if(ec == boost::beast::http::error::end_of_stream){
         std::cout << "End of Stream" << std::endl;
-        return close();
-    }
-    if(ec){
-        printErrorCode(ec);
+        close();
+        return;
+    } if(ec.value() == 335544539){
+        std::cout << "Short Read Error" << std::endl;
+        mDeadline.cancel();
+        close();
         return;
     }
+    std::cout << "Successful Read!" << std::endl;
     processRequest();
 }
 
@@ -117,7 +120,9 @@ void Session::createGetResponse() {
                 } else {
                     resourceFilePath.append("login.html");
                 }
-                boost::beast::ostream(mResponse.body()) << insertCSRFToken(resourceFilePath);
+                std::string page  = readFile(resourceFilePath);
+                mCSRFManager->insertToken(mCSRFToken,page);
+                boost::beast::ostream(mResponse.body()) << page;
                 return;
             } else {
                 resourceFilePath.append("404.html");
@@ -136,29 +141,34 @@ void Session::createPostResponse(){
     } else {
         std::string resource = mRequest.target().to_string();
         std::string body = mRequest.body();
-        if(resource == "/checkcreds"){
-            unsigned long pwdLoc = body.find("&pwd=");
-            std::string usr = body.substr(4, pwdLoc-4);
-            unsigned long csrfLoc = body.find("&_csrf=");
-            std::string pwd = body.substr(pwdLoc+5, csrfLoc-13);
-            if(csrfTokenCheck() && usr == "user" && pwd == "pass"){
-                mAuthorized = true;
-                resourceFilePath.append("admin.html");
+        if(mCSRFManager->compareSessionToken(mCSRFToken, body)){
+            if(mAuthorized){
+                if(resource == "/logout"){
+                    mAuthorized = false;
+                    resourceFilePath.append("login.html");
+                } else if(resource == "/addblog"){
+                    mBlogManager->createBlogFromSubmission(body);
+                } else if(resource == "/removeblog"){
+
+                }
             } else {
-                mAuthorized = false;
-                resourceFilePath.append("login.html");
+                if(resource == "/checkcreds"){
+                    unsigned long pwdLoc = body.find("&pwd=");
+                    std::string usr = body.substr(4, pwdLoc-4);
+                    unsigned long csrfLoc = body.find("&_csrf=");
+                    std::string pwd = body.substr(pwdLoc+5, csrfLoc-13);
+                    if(usr == "user" && pwd == "pass"){
+                        mAuthorized = true;
+                        resourceFilePath.append("admin.html");
+                    } else {
+                        resourceFilePath.append("login.html");
+                    }
+                    std::string page = readFile(resourceFilePath);
+                    mCSRFManager->insertToken(mCSRFToken,page);
+                    boost::beast::ostream(mResponse.body()) << page;
+                    return;
+                }
             }
-            boost::beast::ostream(mResponse.body()) << insertCSRFToken(resourceFilePath);
-            return;
-        } else if(resource == "/logout"){
-            if(csrfTokenCheck()){
-                mAuthorized = false;
-            }
-            resourceFilePath.append("login.html");
-        } else if(resource == "/addblog"){
-
-        } else if(resource == "/removeblog"){
-
         } else {
             resourceFilePath.append("404.html");
         }
@@ -197,6 +207,7 @@ void Session::handleWriteResponse(boost::system::error_code ec, std::size_t byte
 }
 
 void Session::close() {
+    std::cout << "5: Closing" << std::endl;
     mStream.async_shutdown(boost::asio::bind_executor(
             mStrand,
             std::bind(&Session::onShutdown,
@@ -226,27 +237,8 @@ std::string Session::readFile(const std::string &resourceFilePath) const {
     return stringstream.str();
 }
 
-std::string Session::insertCSRFToken(const std::string &resourceFilePath) {
-    mCSRFToken = (mCSRFManager->addToken());
-    std::string page = readFile(resourceFilePath);
-    boost::replace_all(page, "CSRF", mCSRFToken);
-    return page;
-}
-
-bool Session::csrfTokenCheck() {
-    std::string requestBody = mRequest.body();
-    unsigned long tokenIndex = requestBody.find("_csrf=");
-    //always change indexes based on csrf token name
-    std::string requestCSRFToken = requestBody.substr(tokenIndex+6, tokenIndex+26);
-    if(requestCSRFToken == mCSRFToken){
-        mCSRFManager->removeToken(mCSRFToken);
-        return true;
-    }
-    return false;
-}
-
 Session::~Session() {
-    std::cout << "Session terminated" << std::endl;
+    std::cout << "6: Session terminated" << std::endl;
 }
 
 void Session::checkDeadline() {
@@ -259,8 +251,4 @@ void Session::onDeadlineCheck(boost::system::error_code ec) {
         mCSRFManager->removeToken(mCSRFToken);
         close();
     }
-}
-
-void Session::sanitizeInput(std::string &input) {
-
 }

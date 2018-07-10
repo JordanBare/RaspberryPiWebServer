@@ -25,7 +25,7 @@ private:
     }
     std::map<unsigned short,std::string> mBlogIndex;
     std::mutex mMapAccessMutex;
-    const std::string& mBlogDir;
+    const std::string mBlogDir;
     const std::regex mRegexFormula;
 };
 

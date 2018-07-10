@@ -10,9 +10,11 @@
 
 class CSRFManager {
 public:
-    std::string addToken();
-    void removeToken(const std::string &csrfToken);
+    void insertToken(std::string &sessionToken, std::string &page);
+    void removeToken(const std::string &sessionToken);
+    bool compareSessionToken(const std::string &sessionToken, const std::string &requestBody);
 private:
+    std::string generateToken();
     bool checkSetForToken(const std::string &csrfToken);
     std::set<std::string> mCSRFSet;
     std::mutex mSetAccessMutex;

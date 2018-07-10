@@ -5,9 +5,10 @@
 #include <random>
 #include <iostream>
 #include <sstream>
+#include <boost/algorithm/string/replace.hpp>
 #include "CSRFManager.h"
 
-std::string CSRFManager::addToken() {
+std::string CSRFManager::generateToken() {
     std::random_device rd;
     static thread_local std::mt19937 re{rd()};
     std::string csrfToken;
@@ -32,8 +33,25 @@ bool CSRFManager::checkSetForToken(const std::string &csrfToken) {
     return found;
 }
 
-void CSRFManager::removeToken(const std::string &csrfToken) {
+void CSRFManager::removeToken(const std::string &sessionToken) {
     mSetAccessMutex.lock();
-    mCSRFSet.erase(csrfToken);
+    mCSRFSet.erase(sessionToken);
     mSetAccessMutex.unlock();
 }
+
+bool CSRFManager::compareSessionToken(const std::string &sessionToken, const std::string &requestBody) {
+    unsigned long tokenIndex = requestBody.find("_csrf=");
+    //always change indexes based on csrf token name
+    std::string requestCSRFToken = requestBody.substr(tokenIndex+6, tokenIndex+26);
+    if(requestCSRFToken == sessionToken){
+        removeToken(sessionToken);
+        return true;
+    }
+    return false;
+}
+
+void CSRFManager::insertToken(std::string &sessionToken, std::string &page) {
+    sessionToken = generateToken();
+    boost::replace_all(page, "CSRF", sessionToken);
+}
+
