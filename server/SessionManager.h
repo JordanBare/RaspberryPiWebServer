@@ -31,5 +31,4 @@ private:
     std::atomic<unsigned int> mTotalSessions;
 };
 
-
 #endif //SERVER_LISTENER_H

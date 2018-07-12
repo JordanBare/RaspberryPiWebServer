@@ -15,7 +15,7 @@ std::string CSRFManager::generateToken() {
     std::uniform_int_distribution<int> urd(97,122);
     do {
         std::stringstream randomStream;
-        for(int i=0;i < 20;++i){
+        for(int i = 0; i < 20; ++i){
             randomStream << char(urd(re));
         }
         csrfToken = randomStream.str();
@@ -42,7 +42,7 @@ void CSRFManager::removeToken(const std::string &sessionToken) {
 bool CSRFManager::compareSessionToken(const std::string &sessionToken, const std::string &requestBody) {
     unsigned long tokenIndex = requestBody.find("_csrf=");
     //always change indexes based on csrf token name
-    std::string requestCSRFToken = requestBody.substr(tokenIndex+6, tokenIndex+26);
+    std::string requestCSRFToken = requestBody.substr(tokenIndex + 6, 20);
     if(requestCSRFToken == sessionToken){
         removeToken(sessionToken);
         return true;

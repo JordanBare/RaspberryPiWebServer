@@ -9,12 +9,11 @@ Server::Server(unsigned short port,
                unsigned short numThreads,
                std::string rootDir): mIOContext(numThreads),
                                      mSSLContext(boost::asio::ssl::context::tlsv12_server),
-                                     mRootDir(rootDir),
+                                     mRootDir(std::move(rootDir)),
                                      mSessionManager(std::make_shared<SessionManager>(mIOContext,
                                                                                       mSSLContext,
                                                                                       boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"), port},
                                                                                       mRootDir)){
-
     mSSLContext.set_options(boost::asio::ssl::context::default_workarounds |
                             boost::asio::ssl::context::no_sslv2 |
                             boost::asio::ssl::context::no_sslv3 |
@@ -22,9 +21,7 @@ Server::Server(unsigned short port,
                             boost::asio::ssl::context::no_tlsv1_1 |
                             boost::asio::ssl::context::single_dh_use);
     loadCertificate();
-    //readBlogIndexFile();
 }
-
 
 void Server::run(unsigned short numThreads) {
     (*mSessionManager).run();
@@ -61,23 +58,6 @@ void Server::displayMenu() {
     }
 }
 
-/*
-void Server::createBlogFiles() {
-
-    Blog blog = createBlogFromInfo();
-    unsigned short newBlogIndex = mIndexMap.size() + 1;
-    std::ofstream blogFile(mFolderRoots[1] + std::to_string(newBlogIndex) + ".txt");
-    if(blogFile.is_open()){
-        cereal::PortableBinaryOutputArchive blogFileBinaryOutputArchive(blogFile);
-        blogFileBinaryOutputArchive(blog);
-        blogFile.close();
-    }
-    mIndexMap.emplace(newBlogIndex, blog.getTitle());
-    writeBlogIndexFile();
-    writeBlogListPageFile();
-}
-*/
-
 Server::~Server() {
     mIOContext.stop();
     for(auto &thread: mWorkerThreads){
@@ -98,47 +78,3 @@ void Server::loadCertificate() {
 std::string Server::get_Password() {
     return "password";
 }
-
-
-/*
-void Server::destroyBlog(std::string blogToDestroy) {
-    unsigned short blogNumber = boost::lexical_cast<unsigned short>(blogToDestroy);
-    auto it = mIndexMap.find(blogNumber);
-    mIndexMap.erase(it);
-    writeBlogIndexFile();
-    std::string pathToFileToDelete(mFolderRoots[1] + std::to_string(blogNumber) + ".txt");
-    std::remove(pathToFileToDelete.c_str());
-    writeBlogListPageFile();
-}
-
-void Server::writeBlogIndexFile() {
-    std::ofstream indexFile(mFolderRoots[1] + "blogIndex.txt");
-    if(indexFile.is_open()){
-        cereal::PortableBinaryOutputArchive indexFileBinaryOutputArchive(indexFile);
-        indexFileBinaryOutputArchive(mIndexMap);
-        indexFile.close();
-    }
-}
-
-void Server::writeBlogListPageFile() {
-    std::stringstream blogListStream;
-    unsigned short blogCount = 1;
-    blogListStream << "<br><br><table id=\"blogs\"><tr>";
-    std::map<unsigned short, std::string>::iterator it;
-    for (it = mIndexMap.begin(); it != mIndexMap.end(); ++it) {
-        blogListStream << "<td><button onclick=\"loadDoc('/blog" << it->first << "')\">" << it->second << "</button></td>";
-        if(blogCount % 3 == 0){
-            blogListStream << "</tr><tr>";
-        }
-        blogCount++;
-    }
-    blogListStream << "</tr></table>";
-
-    std::ofstream blogListFile(mFolderRoots[0] + "blogs.html");
-    if(blogListFile.is_open()){
-        blogListFile << blogListStream.str();
-        blogListFile.close();
-    }
-}
- */
-

@@ -20,5 +20,4 @@ private:
     std::mutex mSetAccessMutex;
 };
 
-
 #endif //SERVER_CSRFMANAGER_H

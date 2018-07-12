@@ -27,5 +27,4 @@ private:
     std::string mDateTime;
 };
 
-
 #endif //SERVER_BLOG_H

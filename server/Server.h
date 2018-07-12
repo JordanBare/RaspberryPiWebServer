@@ -17,14 +17,6 @@ public:
     void run(unsigned short numThreads);
 private:
     void displayMenu();
-    /*
-    void createBlogFiles();
-    void destroyBlog(std::string blogToDestroy);
-    void writeBlogIndexFile();
-    void readBlogIndexFile();
-    void writeBlogListPageFile();
-    Blog createBlogFromInfo() const;
-     */
     void loadCertificate();
     std::string get_Password();
 

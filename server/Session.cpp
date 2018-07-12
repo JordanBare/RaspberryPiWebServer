@@ -22,6 +22,10 @@ Session::Session(boost::asio::ssl::context  &sslContext,
                                                                mAuthorized(false){
 }
 
+Session::~Session() {
+    std::cout << "6: Session terminated" << std::endl;
+}
+
 void Session::run() {
     std::cout << "1: Session created" << std::endl;
     mStream.async_handshake(boost::asio::ssl::stream_base::server,
@@ -29,6 +33,10 @@ void Session::run() {
                                                        std::bind(&Session::onHandshake,
                                                                  shared_from_this(),
                                                                  std::placeholders::_1)));
+}
+
+void Session::printErrorCode(boost::beast::error_code &ec) {
+    std::cout << "Error code: " << ec.value() << " | Message : " << ec.message() << std::endl;
 }
 
 void Session::onHandshake(boost::system::error_code ec) {
@@ -39,6 +47,18 @@ void Session::onHandshake(boost::system::error_code ec) {
     }
     std::cout << "2: Handshake successful" << std::endl;
     readRequest();
+}
+
+void Session::checkDeadline() {
+    mDeadline.async_wait(std::bind(&Session::onDeadlineCheck,shared_from_this(),std::placeholders::_1));
+}
+
+void Session::onDeadlineCheck(boost::system::error_code ec) {
+    if(!ec){
+        std::cout << "Timer expired" << std::endl;
+        mCSRFManager->removeToken(mCSRFToken);
+        close();
+    }
 }
 
 void Session::readRequest() {
@@ -71,6 +91,30 @@ void Session::handleReadRequest(boost::system::error_code ec, std::size_t bytes_
     processRequest();
 }
 
+void Session::writeResponse() {
+    std::cout << "4: Writing response" << std::endl;
+    mResponse.set(boost::beast::http::field::content_length, mResponse.body().size());
+    boost::beast::http::async_write(mStream,
+                                    mResponse,
+                                    boost::asio::bind_executor(mStrand,
+                                                               std::bind(&Session::handleWriteResponse,
+                                                                         shared_from_this(),
+                                                                         std::placeholders::_1,
+                                                                         std::placeholders::_2)));
+}
+
+void Session::handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred) {
+    boost::ignore_unused(bytes_transferred);
+    mDeadline.cancel();
+    if(ec){
+        printErrorCode(ec);
+        close();
+        return;
+    }
+    mResponse = {};
+    readRequest();
+}
+
 void Session::processRequest() {
     mResponse.version(mRequest.version());
     mResponse.keep_alive(true);
@@ -94,6 +138,39 @@ void Session::processRequest() {
     writeResponse();
 }
 
+bool Session::forbiddenCheck() const {
+    return mRequest.target().empty() ||
+           mRequest.target()[0] != '/' ||
+           mRequest.target().find("..") != boost::beast::string_view::npos;
+}
+
+void Session::close() {
+    std::cout << "5: Closing" << std::endl;
+    mStream.async_shutdown(boost::asio::bind_executor(
+            mStrand,
+            std::bind(&Session::onShutdown,
+                      shared_from_this(),
+                      std::placeholders::_1)));
+}
+
+void Session::onShutdown(boost::system::error_code ec) {
+    if(ec){
+        printErrorCode(ec);
+    }
+    std::cout << "Connection is closed" << std::endl;
+}
+
+std::string Session::readFile(const std::string &resourceFilePath) const {
+    std::ifstream file;
+    file.open(resourceFilePath);
+    std::stringstream stringstream;
+    if(file.is_open()){
+        stringstream << file.rdbuf();
+        file.close();
+    }
+    return stringstream.str();
+}
+
 void Session::createGetResponse() {
     mResponse.result(boost::beast::http::status::ok);
     mResponse.set(boost::beast::http::field::content_type, "text/html");
@@ -102,7 +179,7 @@ void Session::createGetResponse() {
         resourceFilePath.append(mPageRoot + "403.html");
     } else {
         std::string resource = mRequest.target().to_string();
-        if(mBlogManager->checkForBlog(resource)){
+        if(mBlogManager->checkForRequestedBlog(resource)){
         } else {
             resourceFilePath.append(mPageRoot);
             if(resource == "/"){
@@ -132,123 +209,51 @@ void Session::createGetResponse() {
     boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
 }
 
-void Session::createPostResponse(){
+void Session::createPostResponse() {
     mResponse.result(boost::beast::http::status::ok);
     mResponse.set(boost::beast::http::field::content_type, "text/html");
     std::string resourceFilePath = mPageRoot;
-    if(forbiddenCheck()){
+    if (forbiddenCheck()) {
         resourceFilePath.append("403.html");
     } else {
         std::string resource = mRequest.target().to_string();
         std::string body = mRequest.body();
-        if(mCSRFManager->compareSessionToken(mCSRFToken, body)){
-            if(mAuthorized){
-                if(resource == "/logout"){
+        if (mCSRFManager->compareSessionToken(mCSRFToken, body)) {
+            if (mAuthorized) {
+                if (resource == "/logout") {
                     mAuthorized = false;
                     resourceFilePath.append("login.html");
-                } else if(resource == "/addblog"){
+                } else if (resource == "/addblog") {
                     mBlogManager->createBlogFromSubmission(body);
-                } else if(resource == "/removeblog"){
-
+                    resourceFilePath.append("admin.html");
+                } else if (resource == "/removeblog") {
+                    mBlogManager->removeBlog(body);
+                    resourceFilePath.append("admin.html");
                 }
             } else {
-                if(resource == "/checkcreds"){
-                    unsigned long pwdLoc = body.find("&pwd=");
-                    std::string usr = body.substr(4, pwdLoc-4);
-                    unsigned long csrfLoc = body.find("&_csrf=");
-                    std::string pwd = body.substr(pwdLoc+5, csrfLoc-13);
-                    if(usr == "user" && pwd == "pass"){
-                        mAuthorized = true;
-                        resourceFilePath.append("admin.html");
-                    } else {
-                        resourceFilePath.append("login.html");
+                    if (resource == "/checkcreds") {
+                        unsigned long usrLoc = body.find("usr=");
+                        unsigned long pwdLoc = body.find("&pwd=");
+                        unsigned long csrfLoc = body.find("&_csrf=");
+                        std::string usr = body.substr(usrLoc + 4, pwdLoc - (usrLoc + 4));
+                        std::string pwd = body.substr(pwdLoc + 5, csrfLoc - (pwdLoc + 5));
+                        std::cout << "User: " << usr << "\nPass: " << pwd << std::endl;
+                        if (usr == "user" && pwd == "pass") {
+                            mAuthorized = true;
+                            resourceFilePath.append("admin.html");
+                        } else {
+                            resourceFilePath.append("login.html");
+                        }
+                        std::string page = readFile(resourceFilePath);
+                        mCSRFManager->insertToken(mCSRFToken, page);
+                        std::cout << mCSRFToken << std::endl;
+                        boost::beast::ostream(mResponse.body()) << page;
+                        return;
                     }
-                    std::string page = readFile(resourceFilePath);
-                    mCSRFManager->insertToken(mCSRFToken,page);
-                    boost::beast::ostream(mResponse.body()) << page;
-                    return;
-                }
             }
         } else {
-            resourceFilePath.append("404.html");
+                resourceFilePath.append("404.html");
         }
     }
     boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
-}
-
-bool Session::forbiddenCheck() const{
-    return mRequest.target().empty() ||
-           mRequest.target()[0] != '/' ||
-           mRequest.target().find("..") != boost::beast::string_view::npos;
-}
-
-void Session::writeResponse() {
-    std::cout << "4: Writing response" << std::endl;
-    mResponse.set(boost::beast::http::field::content_length, mResponse.body().size());
-    boost::beast::http::async_write(mStream,
-                                    mResponse,
-                                    boost::asio::bind_executor(mStrand,
-                                                               std::bind(&Session::handleWriteResponse,
-                                                                         shared_from_this(),
-                                                                         std::placeholders::_1,
-                                                                         std::placeholders::_2)));
-}
-
-void Session::handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred) {
-    boost::ignore_unused(bytes_transferred);
-    mDeadline.cancel();
-    if(ec){
-        printErrorCode(ec);
-        close();
-        return;
-    }
-    mResponse = {};
-    readRequest();
-}
-
-void Session::close() {
-    std::cout << "5: Closing" << std::endl;
-    mStream.async_shutdown(boost::asio::bind_executor(
-            mStrand,
-            std::bind(&Session::onShutdown,
-                      shared_from_this(),
-                      std::placeholders::_1)));
-}
-
-void Session::onShutdown(boost::system::error_code ec) {
-    if(ec){
-        printErrorCode(ec);
-    }
-    std::cout << "Connection is closed" << std::endl;
-}
-
-void Session::printErrorCode(boost::beast::error_code &ec) {
-    std::cout << "Error code: " << ec.value() << " | Message : " << ec.message() << std::endl;
-}
-
-std::string Session::readFile(const std::string &resourceFilePath) const {
-    std::ifstream file;
-    file.open(resourceFilePath);
-    std::stringstream stringstream;
-    if(file.is_open()){
-        stringstream << file.rdbuf();
-        file.close();
-    }
-    return stringstream.str();
-}
-
-Session::~Session() {
-    std::cout << "6: Session terminated" << std::endl;
-}
-
-void Session::checkDeadline() {
-    mDeadline.async_wait(std::bind(&Session::onDeadlineCheck,shared_from_this(),std::placeholders::_1));
-}
-
-void Session::onDeadlineCheck(boost::system::error_code ec) {
-    if(!ec){
-        std::cout << "Timer expired" << std::endl;
-        mCSRFManager->removeToken(mCSRFToken);
-        close();
-    }
 }
