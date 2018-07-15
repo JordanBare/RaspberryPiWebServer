@@ -22,4 +22,3 @@ int main() {
     std::unique_ptr<Server> server = std::make_unique<Server>(port, numThreads, rootDir);
     (*server).run(numThreads);
 }
-

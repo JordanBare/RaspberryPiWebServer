@@ -10,6 +10,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include "CSRFManager.h"
 #include "BlogManager.h"
+#include "CredentialsManager.h"
 
 class SessionManager : public std::enable_shared_from_this<SessionManager> {
 public:
@@ -28,6 +29,7 @@ private:
     const std::vector<std::string> mFolderRoots;
     std::unique_ptr<CSRFManager> mCSRFManager;
     std::unique_ptr<BlogManager> mBlogManager;
+    std::unique_ptr<CredentialsManager> mCredentialsManager;
     std::atomic<unsigned int> mTotalSessions;
 };
 

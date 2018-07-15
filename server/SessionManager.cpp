@@ -14,10 +14,11 @@ SessionManager::SessionManager(boost::asio::io_context &ioc,
         mSessionSocket(ioc),
         mIOContext(ioc),
         mSSLContext(sslContext),
-        mFolderRoots({rootDir + "//pages//", rootDir + "//blogs//"}),
+        mFolderRoots({rootDir + "//pages//", rootDir + "//blogs//", rootDir + "//creds//"}),
         mTotalSessions(0),
         mCSRFManager(std::make_unique<CSRFManager>()),
-        mBlogManager(std::make_unique<BlogManager>(mFolderRoots)){
+        mBlogManager(std::make_unique<BlogManager>(mFolderRoots)),
+        mCredentialsManager(std::make_unique<CredentialsManager>(mFolderRoots)){
 
     boost::system::error_code ec;
     mAcceptor.open(endpoint.protocol(), ec);
@@ -65,7 +66,7 @@ void SessionManager::onAccept(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFManager, mBlogManager, mFolderRoots)->run();
+    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFManager, mBlogManager, mCredentialsManager, mFolderRoots)->run();
     mTotalSessions++;
     doAccept();
 }

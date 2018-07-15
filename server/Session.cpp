@@ -12,12 +12,14 @@ Session::Session(boost::asio::ssl::context  &sslContext,
                  boost::asio::ip::tcp::socket socket,
                  std::unique_ptr<CSRFManager> &csrfManager,
                  std::unique_ptr<BlogManager> &blogManager,
+                 std::unique_ptr<CredentialsManager> &credentialsManager,
                  const std::vector<std::string> &folderRoots): mSocket(std::move(socket)),
                                                                mStream(mSocket, sslContext),
                                                                mStrand(mSocket.get_executor()),
                                                                mDeadline(mSocket.get_executor().context(),std::chrono::seconds(60)),
                                                                mCSRFManager(csrfManager),
                                                                mBlogManager(blogManager),
+                                                               mCredentialsManager(credentialsManager),
                                                                mPageRoot(folderRoots[0]),
                                                                mAuthorized(false){
 }
@@ -232,13 +234,7 @@ void Session::createPostResponse() {
                 }
             } else {
                     if (resource == "/checkcreds") {
-                        unsigned long usrLoc = body.find("usr=");
-                        unsigned long pwdLoc = body.find("&pwd=");
-                        unsigned long csrfLoc = body.find("&_csrf=");
-                        std::string usr = body.substr(usrLoc + 4, pwdLoc - (usrLoc + 4));
-                        std::string pwd = body.substr(pwdLoc + 5, csrfLoc - (pwdLoc + 5));
-                        std::cout << "User: " << usr << "\nPass: " << pwd << std::endl;
-                        if (usr == "user" && pwd == "pass") {
+                        if (mCredentialsManager->compareCredentials(body)) {
                             mAuthorized = true;
                             resourceFilePath.append("admin.html");
                         } else {
@@ -246,7 +242,6 @@ void Session::createPostResponse() {
                         }
                         std::string page = readFile(resourceFilePath);
                         mCSRFManager->insertToken(mCSRFToken, page);
-                        std::cout << mCSRFToken << std::endl;
                         boost::beast::ostream(mResponse.body()) << page;
                         return;
                     }

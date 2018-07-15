@@ -70,11 +70,11 @@ std::string BlogManager::retrieveFormattedBlog(const std::string &requestString)
 
 std::unique_ptr<Blog> BlogManager::readBlogFromFile(const std::string &resourceFilePath) {
     std::unique_ptr<Blog> blog = std::make_unique<Blog>();
-    std::ifstream file(resourceFilePath);
-    if(file.is_open()){
-        cereal::PortableBinaryInputArchive inputArchive(file);
+    std::ifstream blogFile(resourceFilePath);
+    if(blogFile.is_open()){
+        cereal::PortableBinaryInputArchive inputArchive(blogFile);
         inputArchive(*blog);
-        file.close();
+        blogFile.close();
     }
     return blog;
 }
