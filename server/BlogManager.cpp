@@ -17,11 +17,16 @@ void BlogManager::printDatabaseError() {
 }
 
 void BlogManager::createBlogFromSubmission(const std::string &blogContent) {
-    unsigned long titleLoc = blogContent.find("title=");
-    unsigned long blogLoc = blogContent.find("&blog=");
-    unsigned long tokenLoc = blogContent.find("&_csrf=");
-    std::string title = blogContent.substr(titleLoc + 6, blogLoc - 6);
-    std::string content = blogContent.substr(blogLoc + 6, tokenLoc - (blogLoc + 6));
+    std::string titleAttribute = "title=";
+    std::string blogAttribute = "\nblog=";
+    std::string csrfAttribute = "\n_csrf=";
+    unsigned long titleLoc = blogContent.find(titleAttribute);
+    unsigned long blogLoc = blogContent.find(blogAttribute);
+    unsigned long tokenLoc = blogContent.find(csrfAttribute);
+    std::string title = blogContent.substr(titleLoc + titleAttribute.length(), (blogLoc - blogAttribute.length()) - 1);
+    std::cout << "Title length: " << title.length() << std::endl;
+    std::string content = blogContent.substr(blogLoc + blogAttribute.length(), (tokenLoc - (blogLoc + blogAttribute.length())) - 1);
+    std::cout << "Content length: " << content.length() << std::endl;
     std::cout << blogContent << "\nTitle: " << title << "\nContent: " << content << std::endl;
 
     std::stringstream stream;
@@ -66,23 +71,24 @@ std::string BlogManager::retrieveFormattedBlog(const std::string &requestString)
     }
     if(sqlite3_step(stmt) == SQLITE_ROW){
         std::cout << "Retrieving row" << std::endl;
-        std::string title(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
-        std::string content(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
-        std::string dateTime(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2)));
+        std::string title(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 0)));
+        std::string content(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)));
+        std::string dateTime(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 2)));
         blog = "<article><h2>" + title + "</h2><br><h3>" + dateTime + "</h3><br><p>" + content + "</p></article>";
     } else {
         std::cout << "Column read failed" << std::endl;
         printDatabaseError();
     }
     sqlite3_finalize(stmt);
-    std::cout << blog << std::endl;
     return blog;
 }
 
 void BlogManager::removeBlog(const std::string &blogToRemove) {
-    unsigned long idLoc = blogToRemove.find("id=");
-    unsigned long tokenLoc = blogToRemove.find("&_csrf=");
-    std::string blogIdStr = blogToRemove.substr(idLoc + 3, tokenLoc - (idLoc + 3));
+    std::string idAttribute = "id=";
+    std::string csrfAttribute = "\n_csrf=";
+    unsigned long idLoc = blogToRemove.find(idAttribute);
+    unsigned long tokenLoc = blogToRemove.find(csrfAttribute);
+    std::string blogIdStr = blogToRemove.substr(idLoc + idAttribute.length(), (tokenLoc - (idLoc + idAttribute.length())) - 1);
     if (std::regex_match(blogIdStr, mBlogIdRegexFormula)) {
         int blogId = convertIdToInt(blogIdStr);
         sqlite3_stmt *stmt;
@@ -154,9 +160,9 @@ void BlogManager::writeBlogIndexPage(const std::string &pageDir) {
 
 void BlogManager::formatIndexPage(sqlite3_stmt *stmt, std::stringstream &blogIndex) const {
     blogIndex << "<td><button onclick=\"loadDoc(\'"
-              << reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))
+              << reinterpret_cast<char const *>(sqlite3_column_text(stmt, 0))
               << "\')\">"
-              << reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1))
+              << reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1))
               << "</button></td>";
 }
 

@@ -62,9 +62,11 @@ void CSRFManager::removeToken(const std::string &sessionToken) {
 
 bool CSRFManager::compareSessionToken(const std::string &sessionToken, const std::string &requestBody) {
     std::cout << "comparing session token" << std::endl;
-    unsigned long tokenIndex = requestBody.find("_csrf=");
+    std::string tokenAttribute = "\n_csrf=";
+    unsigned long tokenIndex = requestBody.find(tokenAttribute);
     //always change indexes based on csrf token name
-    std::string requestCSRFToken = requestBody.substr(tokenIndex + 6, 20);
+    std::string requestCSRFToken = requestBody.substr(tokenIndex + tokenAttribute.length(), 20);
+    std::cout << requestCSRFToken << "\n" << sessionToken << std::endl;
     if(requestCSRFToken == sessionToken){
         removeToken(sessionToken);
         return true;

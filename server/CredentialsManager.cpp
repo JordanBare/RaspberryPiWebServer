@@ -37,13 +37,14 @@ CredentialsManager::CredentialsManager(const std::string &folderRoot):mCredentia
 }
 
 bool CredentialsManager::compareCredentials(const std::string &body) {
+    std::cout << body << std::endl;
     std::string usrAttribute = "usr=";
-    std::string pwdAttribute = "&pwd=";
+    std::string pwdAttribute = "\npwd=";
     unsigned long usrLoc = body.find(usrAttribute);
     unsigned long pwdLoc = body.find(pwdAttribute);
-    unsigned long csrfLoc = body.find("&_csrf=");
-    std::string user = body.substr(usrLoc + usrAttribute.length(), pwdLoc - (usrLoc + usrAttribute.length()));
-    std::string password = body.substr(pwdLoc + pwdAttribute.length(), csrfLoc - (pwdLoc + pwdAttribute.length()));
+    unsigned long csrfLoc = body.find("\n_csrf=");
+    std::string user = body.substr(usrLoc + usrAttribute.length(), (pwdLoc - (usrLoc + usrAttribute.length())) - 1);
+    std::string password = body.substr(pwdLoc + pwdAttribute.length(), (csrfLoc - (pwdLoc + pwdAttribute.length())) - 1);
 
     /*
     std::unique_ptr<Credentials> credentials = std::make_unique<Credentials>();
@@ -60,6 +61,17 @@ bool CredentialsManager::compareCredentials(const std::string &body) {
         return false;
     }
      */
+    /*
 
-    return password == "password";
+    if(password == comparison){
+        std::cout << "Password match" << std::endl;
+        return true;
+    }
+    return false;
+     */
+    std::cout << user << " : " << user.length() << std::endl;
+    std::string comparison("password");
+    std::cout << comparison << password << std::endl;
+    std::cout << password.length() << " : " << comparison.length() << std::endl;
+    return password == comparison;
 }
