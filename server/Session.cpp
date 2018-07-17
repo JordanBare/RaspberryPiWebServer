@@ -3,7 +3,6 @@
 //
 
 #include <fstream>
-#include <cereal/archives/portable_binary.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <regex>
 #include "Session.h"
@@ -13,14 +12,14 @@ Session::Session(boost::asio::ssl::context  &sslContext,
                  std::unique_ptr<CSRFManager> &csrfManager,
                  std::unique_ptr<BlogManager> &blogManager,
                  std::unique_ptr<CredentialsManager> &credentialsManager,
-                 const std::vector<std::string> &folderRoots): mSocket(std::move(socket)),
+                 const std::string &pageRootFolder): mSocket(std::move(socket)),
                                                                mStream(mSocket, sslContext),
                                                                mStrand(mSocket.get_executor()),
                                                                mDeadline(mSocket.get_executor().context(),std::chrono::seconds(60)),
                                                                mCSRFManager(csrfManager),
                                                                mBlogManager(blogManager),
                                                                mCredentialsManager(credentialsManager),
-                                                               mPageRoot(folderRoots[0]),
+                                                               mPageRoot(pageRootFolder),
                                                                mAuthorized(false){
 }
 
@@ -181,7 +180,11 @@ void Session::createGetResponse() {
         resourceFilePath.append(mPageRoot + "403.html");
     } else {
         std::string resource = mRequest.target().to_string();
-        if(mBlogManager->checkForRequestedBlog(resource)){
+        if(mBlogManager->checkForValidBlogRequest(resource)){
+            std::string blog = mBlogManager->retrieveFormattedBlog(resource);
+            if(!blog.empty()){
+                boost::beast::ostream(mResponse.body()) << blog;
+            }
         } else {
             resourceFilePath.append(mPageRoot);
             if(resource == "/"){
@@ -227,9 +230,11 @@ void Session::createPostResponse() {
                     resourceFilePath.append("login.html");
                 } else if (resource == "/addblog") {
                     mBlogManager->createBlogFromSubmission(body);
+                    mBlogManager->writeBlogIndexPage(resourceFilePath);
                     resourceFilePath.append("admin.html");
                 } else if (resource == "/removeblog") {
                     mBlogManager->removeBlog(body);
+                    mBlogManager->writeBlogIndexPage(resourceFilePath);
                     resourceFilePath.append("admin.html");
                 }
             } else {

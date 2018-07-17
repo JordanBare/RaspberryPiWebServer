@@ -10,14 +10,13 @@
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/strand.hpp>
-#include "Blog.h"
 #include "CSRFManager.h"
 #include "BlogManager.h"
 #include "CredentialsManager.h"
 
 class Session : public std::enable_shared_from_this<Session> {
 public:
-    Session(boost::asio::ssl::context& sslContext, boost::asio::ip::tcp::socket socket, std::unique_ptr<CSRFManager> &csrfManager, std::unique_ptr<BlogManager> &blogManager, std::unique_ptr<CredentialsManager> &credentialsManager, const std::vector<std::string> &folderRoots);
+    Session(boost::asio::ssl::context& sslContext, boost::asio::ip::tcp::socket socket, std::unique_ptr<CSRFManager> &csrfManager, std::unique_ptr<BlogManager> &blogManager, std::unique_ptr<CredentialsManager> &credentialsManager, const std::string &pageRootFolder);
     ~Session();
     void run();
 private:

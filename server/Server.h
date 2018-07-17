@@ -5,10 +5,10 @@
 #ifndef SERVER_SERVER_H
 #define SERVER_SERVER_H
 
-
 #include <thread>
 #include "SessionManager.h"
 #include <boost/asio/ssl/context.hpp>
+#include <sqlite3.h>
 
 class Server {
 public:
@@ -23,6 +23,7 @@ private:
     boost::asio::io_context mIOContext;
     boost::asio::ssl::context mSSLContext;
     std::string mRootDir;
+    sqlite3 *mDatabase;
     std::shared_ptr<SessionManager> mSessionManager;
     std::vector<std::thread> mWorkerThreads;
 };

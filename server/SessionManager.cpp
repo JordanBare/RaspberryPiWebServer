@@ -9,16 +9,17 @@
 SessionManager::SessionManager(boost::asio::io_context &ioc,
                    boost::asio::ssl::context &sslContext,
                    boost::asio::ip::tcp::endpoint endpoint,
-                   std::string rootDir):
+                               sqlite3 *&database,
+                               const std::string &rootDir):
         mAcceptor(ioc),
         mSessionSocket(ioc),
         mIOContext(ioc),
         mSSLContext(sslContext),
-        mFolderRoots({rootDir + "//pages//", rootDir + "//blogs//", rootDir + "//creds//"}),
+        mPageRoot(rootDir + "//pages//"),
         mTotalSessions(0),
-        mCSRFManager(std::make_unique<CSRFManager>()),
-        mBlogManager(std::make_unique<BlogManager>(mFolderRoots)),
-        mCredentialsManager(std::make_unique<CredentialsManager>(mFolderRoots)){
+        mCSRFManager(std::make_unique<CSRFManager>(database)),
+        mBlogManager(std::make_unique<BlogManager>(database)),
+        mCredentialsManager(std::make_unique<CredentialsManager>(mPageRoot)){
 
     boost::system::error_code ec;
     mAcceptor.open(endpoint.protocol(), ec);
@@ -66,7 +67,7 @@ void SessionManager::onAccept(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFManager, mBlogManager, mCredentialsManager, mFolderRoots)->run();
+    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFManager, mBlogManager, mCredentialsManager, mPageRoot)->run();
     mTotalSessions++;
     doAccept();
 }

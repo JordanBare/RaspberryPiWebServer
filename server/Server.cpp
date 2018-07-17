@@ -3,6 +3,7 @@
 //
 
 #include <fstream>
+#include <iostream>
 #include "Server.h"
 
 Server::Server(unsigned short port,
@@ -13,7 +14,10 @@ Server::Server(unsigned short port,
                                      mSessionManager(std::make_shared<SessionManager>(mIOContext,
                                                                                       mSSLContext,
                                                                                       boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"), port},
+                                                                                      mDatabase,
                                                                                       mRootDir)){
+
+
     mSSLContext.set_options(boost::asio::ssl::context::default_workarounds |
                             boost::asio::ssl::context::no_sslv2 |
                             boost::asio::ssl::context::no_sslv3 |
@@ -21,6 +25,10 @@ Server::Server(unsigned short port,
                             boost::asio::ssl::context::no_tlsv1_1 |
                             boost::asio::ssl::context::single_dh_use);
     loadCertificate();
+    std::string dbDir(mRootDir + "//database//webDB.db");
+    if(sqlite3_open(dbDir.c_str(), &mDatabase)){
+        std::cout << "No database file!" << std::endl;
+    }
 }
 
 void Server::run(unsigned short numThreads) {
@@ -63,6 +71,7 @@ Server::~Server() {
     for(auto &thread: mWorkerThreads){
         thread.join();
     }
+    sqlite3_close(mDatabase);
 }
 
 void Server::loadCertificate() {

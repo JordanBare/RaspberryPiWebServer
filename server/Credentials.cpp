@@ -23,12 +23,9 @@ bool Credentials::compareUserName(std::string &sessionUserName) {
 
 bool Credentials::comparePassword(std::string &sessionPassword) {
     if(sessionPassword == mPassword){
+        OPENSSL_cleanse(&sessionPassword, sessionPassword.length());
         return true;
     }
     OPENSSL_cleanse(&sessionPassword, sessionPassword.length());
     return false;
-}
-
-std::string Credentials::hashCredentials(const std::string &credential) {
-    return std::string();
 }

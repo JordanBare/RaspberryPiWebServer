@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-lssl -lcrypto")
+set(CMAKE_CXX_FLAGS "-lssl -lcrypto -lsqlite3")
 project(Server)
 
 find_package(Boost 1.67.0 COMPONENTS system filesystem REQUIRED)
@@ -33,12 +33,11 @@ if(Cereal_FOUND)
     include_directories(${Cereal_INCLUDE_DIRS})
 endif()
 
-add_executable(Server server/main.cpp server/Session.cpp server/Session.h server/SessionManager.cpp server/SessionManager.h server/Blog.cpp server/Blog.h server/Server.cpp server/Server.h server/BlogManager.cpp server/BlogManager.h server/CSRFManager.cpp server/CSRFManager.h server/CredentialsManager.cpp server/CredentialsManager.h server/Credentials.cpp server/Credentials.h)
+add_executable(Server server/main.cpp server/Session.cpp server/Session.h server/SessionManager.cpp server/SessionManager.h server/Server.cpp server/Server.h server/BlogManager.cpp server/BlogManager.h server/CSRFManager.cpp server/CSRFManager.h server/CredentialsManager.cpp server/CredentialsManager.h server/Credentials.cpp server/Credentials.h)
 
 if(Boost_FOUND)
     target_link_libraries(Server ${Boost_LIBRARIES})
 endif()
-
 if(Cereal_FOUND)
     target_link_libraries(Server ${Cereal_LIBRARIES})
 endif()
@@ -46,6 +45,3 @@ endif()
 if(OpenSSL_FOUND)
     target_link_libraries(Server ${OpenSSL_LIBRARIES})
 endif()
-
-
-

@@ -4,11 +4,10 @@
 
 #include <cereal/archives/portable_binary.hpp>
 #include <fstream>
-#include <openssl/crypto.h>
 #include "CredentialsManager.h"
-#include "Credentials.h"
 
 void CredentialsManager::checkForCredentialsFile() {
+    /*
     std::string credFileName = mCredentialsDirectory + "loginInfo.txt";
     std::ifstream credentialsInFile(credFileName);
     if(!credentialsInFile.is_open()){
@@ -30,10 +29,11 @@ void CredentialsManager::checkForCredentialsFile() {
     } else {
         credentialsInFile.close();
     }
+     */
 }
 
-CredentialsManager::CredentialsManager(const std::vector<std::string> &folderRoots):mCredentialsDirectory(folderRoots[2]) {
-    checkForCredentialsFile();
+CredentialsManager::CredentialsManager(const std::string &folderRoot):mCredentialsDirectory(folderRoot) {
+    //checkForCredentialsFile();
 }
 
 bool CredentialsManager::compareCredentials(const std::string &body) {
@@ -45,6 +45,7 @@ bool CredentialsManager::compareCredentials(const std::string &body) {
     std::string user = body.substr(usrLoc + usrAttribute.length(), pwdLoc - (usrLoc + usrAttribute.length()));
     std::string password = body.substr(pwdLoc + pwdAttribute.length(), csrfLoc - (pwdLoc + pwdAttribute.length()));
 
+    /*
     std::unique_ptr<Credentials> credentials = std::make_unique<Credentials>();
     std::ifstream credentialsFile(mCredentialsDirectory + "loginInfo.txt");
     if(credentialsFile.is_open()){
@@ -58,5 +59,7 @@ bool CredentialsManager::compareCredentials(const std::string &body) {
     else if(!credentials->comparePassword(password)){
         return false;
     }
-    return true;
+     */
+
+    return password == "password";
 }

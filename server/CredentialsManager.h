@@ -9,7 +9,7 @@
 
 class CredentialsManager {
 public:
-    explicit CredentialsManager(const std::vector<std::string> &folderRoots);
+    explicit CredentialsManager(const std::string &folderRoot);
     bool compareCredentials(const std::string &body);
 private:
     void checkForCredentialsFile();
