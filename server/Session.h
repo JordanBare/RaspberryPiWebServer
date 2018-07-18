@@ -50,6 +50,8 @@ private:
     boost::beast::flat_buffer mBuffer{8192};
     boost::beast::http::request<boost::beast::http::string_body> mRequest;
     boost::beast::http::response<boost::beast::http::dynamic_body> mResponse;
+
+    void fillResponseBodyWithFile(const std::string &resourceFilePath);
 };
 
 #endif //SERVER_HTTPWORKER_H

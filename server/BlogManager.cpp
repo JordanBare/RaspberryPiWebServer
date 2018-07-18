@@ -8,9 +8,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "BlogManager.h"
 
-BlogManager::BlogManager(sqlite3 *&database): mDatabase(database), mBlogIdRegexFormula("[1-9][0-9]{0,4}") {
-
-}
+BlogManager::BlogManager(sqlite3 *&database): mDatabase(database), mGetBlogIdRegexFormula("^/[1-9][0-9]{0,4}") {}
 
 void BlogManager::printDatabaseError() {
     std::cout << sqlite3_errmsg(mDatabase) << std::endl;
@@ -46,8 +44,8 @@ void BlogManager::createBlogFromSubmission(const std::string &blogContent) {
 }
 
 std::string BlogManager::retrieveFormattedBlog(const std::string &requestString) {
-    std::string blog;
     int blogId = convertIdToInt(requestString.substr(1,requestString.length()-1));
+    std::string blog;
     sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(mDatabase, "SELECT title, content, datetime FROM blogs WHERE id = ?;", -1, &stmt, nullptr) != SQLITE_OK){
         printDatabaseError();
@@ -59,7 +57,7 @@ std::string BlogManager::retrieveFormattedBlog(const std::string &requestString)
         std::string title(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 0)));
         std::string content(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)));
         std::string dateTime(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 2)));
-        blog = "<article><h2>" + title + "</h2><br><h3>" + dateTime + "</h3><br><p>" + content + "</p></article>";
+        blog = "<article><h2>" + title + "</h2><h3>" + dateTime + "</h3><p>" + content + "</p></article>";
     } else {
         printDatabaseError();
     }
@@ -73,20 +71,18 @@ void BlogManager::removeBlog(const std::string &blogToRemove) {
     unsigned long idLoc = blogToRemove.find(idAttribute);
     unsigned long tokenLoc = blogToRemove.find(csrfAttribute);
     std::string blogIdStr = blogToRemove.substr(idLoc + idAttribute.length(), (tokenLoc - (idLoc + idAttribute.length())) - 1);
-    if (std::regex_match(blogIdStr, mBlogIdRegexFormula)) {
-        int blogId = convertIdToInt(blogIdStr);
-        sqlite3_stmt *stmt;
-        if(sqlite3_prepare_v2(mDatabase, "DELETE FROM blogs WHERE id = ?;", -1, &stmt, nullptr) != SQLITE_OK){
-            printDatabaseError();
-        }
-        if(sqlite3_bind_int(stmt, 1, blogId) != SQLITE_OK){
-            printDatabaseError();
-        }
-        if(sqlite3_step(stmt) != SQLITE_DONE){
-            printDatabaseError();
-        }
-        sqlite3_finalize(stmt);
+    int blogId = convertIdToInt(blogIdStr);
+    sqlite3_stmt *stmt;
+    if(sqlite3_prepare_v2(mDatabase, "DELETE FROM blogs WHERE id = ?;", -1, &stmt, nullptr) != SQLITE_OK){
+        printDatabaseError();
     }
+    if(sqlite3_bind_int(stmt, 1, blogId) != SQLITE_OK){
+        printDatabaseError();
+    }
+    if(sqlite3_step(stmt) != SQLITE_DONE){
+        printDatabaseError();
+    }
+    sqlite3_finalize(stmt);
 }
 
 int BlogManager::convertIdToInt(const std::string stringToConvert) {
@@ -112,11 +108,10 @@ bool BlogManager::checkForBlogByTitle(const std::string &blogTitle) {
 }
 
 bool BlogManager::checkForValidBlogRequest(const std::string &requestedBlog) {
-    return std::regex_match(requestedBlog, mBlogIdRegexFormula);
+    return std::regex_match(requestedBlog, mGetBlogIdRegexFormula);
 }
 
 void BlogManager::writeBlogIndexPage(const std::string &pageDir) {
-    mBlogIndexPageMutex.lock();
     sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(mDatabase, "SELECT id, title FROM blogs ORDER BY id;", -1, &stmt, nullptr) != SQLITE_OK){
         printDatabaseError();
@@ -134,12 +129,13 @@ void BlogManager::writeBlogIndexPage(const std::string &pageDir) {
     }
     blogIndex << "</table>";
     sqlite3_finalize(stmt);
+    mWritingBlogsFileMutex.lock();
     std::ofstream blogIndexPage(pageDir + "blogs.html");
     if(blogIndexPage.is_open()){
         blogIndexPage << blogIndex.str();
         blogIndexPage.close();
     }
-    mBlogIndexPageMutex.unlock();
+    mWritingBlogsFileMutex.unlock();
 }
 
 void BlogManager::formatIndexPage(sqlite3_stmt *stmt, std::stringstream &blogIndex) const {
@@ -148,4 +144,12 @@ void BlogManager::formatIndexPage(sqlite3_stmt *stmt, std::stringstream &blogInd
               << "\')\">"
               << reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1))
               << "</button></td>";
+}
+
+void BlogManager::lockRead() {
+    mWritingBlogsFileMutex.lock_shared();
+}
+
+void BlogManager::unlockRead() {
+    mWritingBlogsFileMutex.unlock_shared();
 }

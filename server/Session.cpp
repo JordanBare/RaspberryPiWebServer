@@ -162,9 +162,8 @@ void Session::onShutdown(boost::system::error_code ec) {
 }
 
 std::string Session::readFile(const std::string &resourceFilePath) const {
-    std::ifstream file;
-    file.open(resourceFilePath);
     std::stringstream stringstream;
+    std::ifstream file(resourceFilePath);
     if(file.is_open()){
         stringstream << file.rdbuf();
         file.close();
@@ -184,6 +183,7 @@ void Session::createGetResponse() {
             std::string blog = mBlogManager->retrieveFormattedBlog(resource);
             if(!blog.empty()){
                 boost::beast::ostream(mResponse.body()) << blog;
+                return;
             }
         } else {
             resourceFilePath.append(mPageRoot);
@@ -196,6 +196,10 @@ void Session::createGetResponse() {
                 resourceFilePath.append("about.html");
             } else if(resource == "/blogs"){
                 resourceFilePath.append("blogs.html");
+                mBlogManager->lockRead();
+                fillResponseBodyWithFile(resourceFilePath);
+                mBlogManager->unlockRead();
+                return;
             } else if(resource == "/login" || "/admin"){
                 if(mAuthorized){
                     resourceFilePath.append("admin.html");
@@ -211,7 +215,11 @@ void Session::createGetResponse() {
             }
         }
     }
-    boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
+    fillResponseBodyWithFile(resourceFilePath);
+}
+
+void Session::fillResponseBodyWithFile(const std::string &resourceFilePath) {
+    ostream(mResponse.body()) << readFile(resourceFilePath);
 }
 
 void Session::createPostResponse() {
@@ -252,8 +260,8 @@ void Session::createPostResponse() {
             boost::beast::ostream(mResponse.body()) << page;
             return;
         } else {
-                resourceFilePath.append("404.html");
+            resourceFilePath.append("404.html");
         }
     }
-    boost::beast::ostream(mResponse.body()) << readFile(resourceFilePath);
+    fillResponseBodyWithFile(resourceFilePath);
 }
