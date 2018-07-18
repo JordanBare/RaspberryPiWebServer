@@ -79,5 +79,3 @@ void SessionManager::printErrorCode(boost::system::error_code &ec) {
 unsigned int SessionManager::reportSessionsHeld() {
     return mTotalSessions;
 }
-
-

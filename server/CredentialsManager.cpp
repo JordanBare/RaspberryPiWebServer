@@ -60,18 +60,7 @@ bool CredentialsManager::compareCredentials(const std::string &body) {
     else if(!credentials->comparePassword(password)){
         return false;
     }
-     */
-    /*
-
-    if(password == comparison){
-        std::cout << "Password match" << std::endl;
-        return true;
-    }
-    return false;
-     */
-    std::cout << user << " : " << user.length() << std::endl;
+    */
     std::string comparison("password");
-    std::cout << comparison << password << std::endl;
-    std::cout << password.length() << " : " << comparison.length() << std::endl;
     return password == comparison;
 }

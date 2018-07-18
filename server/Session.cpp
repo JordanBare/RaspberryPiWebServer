@@ -245,12 +245,12 @@ void Session::createPostResponse() {
                         } else {
                             resourceFilePath.append("login.html");
                         }
-                        std::string page = readFile(resourceFilePath);
-                        mCSRFManager->insertToken(mCSRFToken, page);
-                        boost::beast::ostream(mResponse.body()) << page;
-                        return;
                     }
             }
+            std::string page = readFile(resourceFilePath);
+            mCSRFManager->insertToken(mCSRFToken, page);
+            boost::beast::ostream(mResponse.body()) << page;
+            return;
         } else {
                 resourceFilePath.append("404.html");
         }

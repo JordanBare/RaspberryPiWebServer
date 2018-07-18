@@ -16,8 +16,6 @@ Server::Server(unsigned short port,
                                                                                       boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address("0::0"), port},
                                                                                       mDatabase,
                                                                                       mRootDir)){
-
-
     mSSLContext.set_options(boost::asio::ssl::context::default_workarounds |
                             boost::asio::ssl::context::no_sslv2 |
                             boost::asio::ssl::context::no_sslv3 |

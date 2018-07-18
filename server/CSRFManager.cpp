@@ -41,12 +41,10 @@ std::string CSRFManager::generateToken() {
         }
         sqlite3_finalize(stmt);
     }
-    std::cout << "generating session token" << std::endl;
     return csrfToken;
 }
 
 void CSRFManager::removeToken(const std::string &sessionToken) {
-    std::cout << "removing token from DB" << std::endl;
     sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(mDatabase, "DELETE FROM csrftokens WHERE token = ?;", -1, &stmt, nullptr) != SQLITE_OK){
         printDatabaseError();
@@ -61,12 +59,10 @@ void CSRFManager::removeToken(const std::string &sessionToken) {
 }
 
 bool CSRFManager::compareSessionToken(const std::string &sessionToken, const std::string &requestBody) {
-    std::cout << "comparing session token" << std::endl;
     std::string tokenAttribute = "\n_csrf=";
     unsigned long tokenIndex = requestBody.find(tokenAttribute);
     //always change indexes based on csrf token name
     std::string requestCSRFToken = requestBody.substr(tokenIndex + tokenAttribute.length(), 20);
-    std::cout << requestCSRFToken << "\n" << sessionToken << std::endl;
     if(requestCSRFToken == sessionToken){
         removeToken(sessionToken);
         return true;
