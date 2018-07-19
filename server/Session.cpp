@@ -181,7 +181,6 @@ void Session::createGetResponse() {
         std::string resource = mRequest.target().to_string();
         if(mBlogManager->checkForValidBlogRequest(resource)){
             std::string blog = mBlogManager->retrieveFormattedBlogForRequest(resource);
-            std::cout << "Blog: " << blog << std::endl;
             if(!blog.empty()){
                 mResponse.set(boost::beast::http::field::content_type, "application/json");
                 boost::beast::ostream(mResponse.body()) << blog;
@@ -191,10 +190,15 @@ void Session::createGetResponse() {
             resourceFilePath.append(mPageRoot);
             if(resource == "/"){
                 resourceFilePath.append("index.html");
-            } else if(resource == "/favicon.ico"){
-                resourceFilePath.append("favicon.ico");
-                mResponse.set(boost::beast::http::field::content_type, "image/vnd.microsoft.icon");
-            } else if(resource == "/about"){
+            } else if(resource == "/recentblog"){
+                mResponse.set(boost::beast::http::field::content_type, "application/json");
+                boost::beast::ostream(mResponse.body()) << mBlogManager->retrieveMostRecentBlog();
+                return;
+            }
+            else if(resource == "/favicon.ico"){
+                    resourceFilePath.append("favicon.ico");
+                    mResponse.set(boost::beast::http::field::content_type, "image/vnd.microsoft.icon"); }
+            else if(resource == "/about"){
                 resourceFilePath.append("about.html");
             } else if(resource == "/blogs"){
                 resourceFilePath.append("blogs.html");

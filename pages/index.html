@@ -22,6 +22,13 @@
         td{width:33%}
     </style>
     <script>
+        window.onload = function(){
+            var xhttp = new XMLHttpRequest();
+            handleBlogFetch(xhttp);
+            xhttp.open("GET", "/recentblog", true);
+            xhttp.send();
+        }
+
         function loadDoc(resource){
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
@@ -35,25 +42,28 @@
             return blogId != 0;
 
         }
+        function handleBlogFetch(xhttp){
+            xhttp.onreadystatechange = function () {
+                if (xhttp.readyState === 4 && xhttp.status === 200) {
+                    var blog = JSON.parse(this.responseText).value0;
+                    var formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p>" + blog.value2 + "</p></article>";
+                    if (notZero(blog.value3)) {
+                        formattedBlog += formatBlogButton(blog.value3, "Previous");
+                    }
+                    if (notZero(blog.value4)) {
+                        formattedBlog += formatBlogButton(blog.value4, "Next");
+                    }
+                    document.getElementById("content").innerHTML = formattedBlog;
+                }
+            };
+        }
         function formatBlogButton(blogId, type){
             return "<button onclick=\"loadBlog(\'" + blogId + "\')\">" + type + "</button>";
         }
         function loadBlog(blogToRequest){
             if(notZero(blogToRequest)) {
                 var xhttp = new XMLHttpRequest();
-                xhttp.onreadystatechange = function () {
-                    if (xhttp.readyState === 4 && xhttp.status === 200) {
-                        var blog = JSON.parse(this.responseText).value0;
-                        var formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p>" + blog.value2 + "</p></article>";
-                        if (notZero(blog.value3)) {
-                            formattedBlog += formatBlogButton(blog.value3, "Previous");
-                        }
-                        if (notZero(blog.value4)) {
-                            formattedBlog += formatBlogButton(blog.value4, "Next");
-                        }
-                        document.getElementById("content").innerHTML = formattedBlog;
-                    }
-                };
+                handleBlogFetch(xhttp);
                 xhttp.open("GET", blogToRequest, true);
                 xhttp.send();
             }
