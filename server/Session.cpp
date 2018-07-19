@@ -180,7 +180,7 @@ void Session::createGetResponse() {
     } else {
         std::string resource = mRequest.target().to_string();
         if(mBlogManager->checkForValidBlogRequest(resource)){
-            std::string blog = mBlogManager->retrieveFormattedBlog(resource);
+            std::string blog = mBlogManager->retrieveFormattedBlogForRequest(resource);
             if(!blog.empty()){
                 boost::beast::ostream(mResponse.body()) << blog;
                 return;

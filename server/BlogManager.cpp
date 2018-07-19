@@ -43,7 +43,73 @@ void BlogManager::createBlogFromSubmission(const std::string &blogContent) {
     }
 }
 
-std::string BlogManager::retrieveFormattedBlog(const std::string &requestString) {
+std::string BlogManager::formatAdjacentLink(const std::string &type, const int &blogId) {
+    std::stringstream stream;
+    if(blogId != 0){
+        stream << "<button onclick=\"loadDoc(\'" << blogId << "\')\">" << type << "</button>";
+    }
+    return stream.str();
+}
+
+std::string BlogManager::getFormattedLinkToPreviousBlog(const int &id) {
+    sqlite3_stmt *stmt;
+    int prevId = 0;
+    if(sqlite3_prepare_v2(mDatabase, "SELECT id FROM blogs WHERE id < ? ORDER BY id DESC LIMIT 1;", -1, &stmt, nullptr) != SQLITE_OK){
+        printDatabaseError();
+    }
+    if(sqlite3_bind_int(stmt, 1, id) != SQLITE_OK){
+        printDatabaseError();
+    }
+    if(sqlite3_step(stmt) == SQLITE_ROW){
+        prevId = sqlite3_column_int(stmt, 0);
+    } else {
+        printDatabaseError();
+    }
+    sqlite3_finalize(stmt);
+
+    return formatAdjacentLink("Prev.", prevId);
+}
+
+std::string BlogManager::getFormattedLinkToNextBlog(const int &id) {
+    sqlite3_stmt *stmt;
+    int nextId = 0;
+    if(sqlite3_prepare_v2(mDatabase, "SELECT id FROM blogs WHERE id > ? ORDER BY id LIMIT 1;", -1, &stmt, nullptr) != SQLITE_OK){
+        printDatabaseError();
+    }
+    if(sqlite3_bind_int(stmt, 1, id) != SQLITE_OK){
+        printDatabaseError();
+    }
+    if(sqlite3_step(stmt) == SQLITE_ROW){
+        nextId = sqlite3_column_int(stmt, 0);
+    } else {
+        printDatabaseError();
+    }
+    sqlite3_finalize(stmt);
+
+    return formatAdjacentLink("Next", nextId);
+}
+
+std::string BlogManager::retrieveMostRecentBlog() {
+    std::string blog;
+    sqlite3_stmt *stmt;
+    if(sqlite3_prepare_v2(mDatabase, "SELECT * FROM blogs ORDER BY id DESC LIMIT 1;", -1, &stmt, nullptr) != SQLITE_OK){
+        printDatabaseError();
+    }
+    if(sqlite3_step(stmt) == SQLITE_ROW){
+        int blogId = sqlite3_column_int(stmt, 0);
+        std::string title(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)));
+        std::string content(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 2)));
+        std::string dateTime(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 3)));
+        blog = "<article><h2>" + title + "</h2><h3>" + dateTime + "</h3><p>" + content + "</p></article>" +
+                getFormattedLinkToPreviousBlog(blogId);
+    } else {
+        printDatabaseError();
+    }
+    sqlite3_finalize(stmt);
+    return std::string();
+}
+
+std::string BlogManager::retrieveFormattedBlogForRequest(const std::string &requestString) {
     int blogId = convertIdToInt(requestString.substr(1,requestString.length()-1));
     std::string blog;
     sqlite3_stmt *stmt;
@@ -57,7 +123,9 @@ std::string BlogManager::retrieveFormattedBlog(const std::string &requestString)
         std::string title(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 0)));
         std::string content(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)));
         std::string dateTime(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 2)));
-        blog = "<article><h2>" + title + "</h2><h3>" + dateTime + "</h3><p>" + content + "</p></article>";
+        blog = "<article><h2>" + title + "</h2><h3>" + dateTime + "</h3><p>" + content + "</p></article>" +
+                getFormattedLinkToPreviousBlog(blogId) +
+                getFormattedLinkToNextBlog(blogId);
     } else {
         printDatabaseError();
     }
@@ -140,7 +208,7 @@ void BlogManager::writeBlogIndexPage(const std::string &pageDir) {
 
 void BlogManager::formatIndexPage(sqlite3_stmt *stmt, std::stringstream &blogIndex) const {
     blogIndex << "<td><button onclick=\"loadDoc(\'"
-              << reinterpret_cast<char const *>(sqlite3_column_text(stmt, 0))
+              << sqlite3_column_int(stmt, 0)
               << "\')\">"
               << reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1))
               << "</button></td>";
