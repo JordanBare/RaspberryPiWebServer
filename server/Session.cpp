@@ -181,7 +181,9 @@ void Session::createGetResponse() {
         std::string resource = mRequest.target().to_string();
         if(mBlogManager->checkForValidBlogRequest(resource)){
             std::string blog = mBlogManager->retrieveFormattedBlogForRequest(resource);
+            std::cout << "Blog: " << blog << std::endl;
             if(!blog.empty()){
+                mResponse.set(boost::beast::http::field::content_type, "application/json");
                 boost::beast::ostream(mResponse.body()) << blog;
                 return;
             }

@@ -6,7 +6,9 @@
 #include <iostream>
 #include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <cereal/archives/json.hpp>
 #include "BlogManager.h"
+#include "Blog.h"
 
 BlogManager::BlogManager(sqlite3 *&database): mDatabase(database), mGetBlogIdRegexFormula("^/[1-9][0-9]{0,4}") {}
 
@@ -43,15 +45,7 @@ void BlogManager::createBlogFromSubmission(const std::string &blogContent) {
     }
 }
 
-std::string BlogManager::formatAdjacentLink(const std::string &type, const int &blogId) {
-    std::stringstream stream;
-    if(blogId != 0){
-        stream << "<button onclick=\"loadDoc(\'" << blogId << "\')\">" << type << "</button>";
-    }
-    return stream.str();
-}
-
-std::string BlogManager::getFormattedLinkToPreviousBlog(const int &id) {
+int BlogManager::getFormattedLinkToPreviousBlog(const int &id) {
     sqlite3_stmt *stmt;
     int prevId = 0;
     if(sqlite3_prepare_v2(mDatabase, "SELECT id FROM blogs WHERE id < ? ORDER BY id DESC LIMIT 1;", -1, &stmt, nullptr) != SQLITE_OK){
@@ -67,10 +61,10 @@ std::string BlogManager::getFormattedLinkToPreviousBlog(const int &id) {
     }
     sqlite3_finalize(stmt);
 
-    return formatAdjacentLink("Prev.", prevId);
+    return prevId;
 }
 
-std::string BlogManager::getFormattedLinkToNextBlog(const int &id) {
+int BlogManager::getFormattedLinkToNextBlog(const int &id) {
     sqlite3_stmt *stmt;
     int nextId = 0;
     if(sqlite3_prepare_v2(mDatabase, "SELECT id FROM blogs WHERE id > ? ORDER BY id LIMIT 1;", -1, &stmt, nullptr) != SQLITE_OK){
@@ -86,7 +80,7 @@ std::string BlogManager::getFormattedLinkToNextBlog(const int &id) {
     }
     sqlite3_finalize(stmt);
 
-    return formatAdjacentLink("Next", nextId);
+    return nextId;
 }
 
 std::string BlogManager::retrieveMostRecentBlog() {
@@ -100,8 +94,8 @@ std::string BlogManager::retrieveMostRecentBlog() {
         std::string title(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)));
         std::string content(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 2)));
         std::string dateTime(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 3)));
-        blog = "<article><h2>" + title + "</h2><h3>" + dateTime + "</h3><p>" + content + "</p></article>" +
-                getFormattedLinkToPreviousBlog(blogId);
+        blog = "<article><h2>" + title + "</h2><h3>" + dateTime + "</h3><p>" + content + "</p></article>";
+                //
     } else {
         printDatabaseError();
     }
@@ -111,7 +105,7 @@ std::string BlogManager::retrieveMostRecentBlog() {
 
 std::string BlogManager::retrieveFormattedBlogForRequest(const std::string &requestString) {
     int blogId = convertIdToInt(requestString.substr(1,requestString.length()-1));
-    std::string blog;
+    std::stringstream blogStream;
     sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(mDatabase, "SELECT title, content, datetime FROM blogs WHERE id = ?;", -1, &stmt, nullptr) != SQLITE_OK){
         printDatabaseError();
@@ -120,17 +114,19 @@ std::string BlogManager::retrieveFormattedBlogForRequest(const std::string &requ
         printDatabaseError();
     }
     if(sqlite3_step(stmt) == SQLITE_ROW){
-        std::string title(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 0)));
-        std::string content(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)));
-        std::string dateTime(reinterpret_cast<char const *>(sqlite3_column_text(stmt, 2)));
-        blog = "<article><h2>" + title + "</h2><h3>" + dateTime + "</h3><p>" + content + "</p></article>" +
-                getFormattedLinkToPreviousBlog(blogId) +
-                getFormattedLinkToNextBlog(blogId);
+        std::unique_ptr blog = std::make_unique<Blog>(
+                reinterpret_cast<char const *>(sqlite3_column_text(stmt, 0)),
+                reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)),
+                reinterpret_cast<char const *>(sqlite3_column_text(stmt, 2)),
+                getFormattedLinkToPreviousBlog(blogId),
+                getFormattedLinkToNextBlog(blogId));
+        cereal::JSONOutputArchive jsonOutputArchive(blogStream);
+        jsonOutputArchive(*blog);
     } else {
         printDatabaseError();
     }
     sqlite3_finalize(stmt);
-    return blog;
+    return blogStream.str();
 }
 
 void BlogManager::removeBlog(const std::string &blogToRemove) {

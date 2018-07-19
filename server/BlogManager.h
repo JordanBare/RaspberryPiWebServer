@@ -25,9 +25,8 @@ private:
     bool checkForBlogByTitle(const std::string &blogTitle);
     int convertIdToInt(std::string stringToConvert);
     void formatIndexPage(sqlite3_stmt *stmt, std::stringstream &blogIndex) const;
-    std::string getFormattedLinkToPreviousBlog(const int &id);
-    std::string getFormattedLinkToNextBlog(const int &id);
-    std::string formatAdjacentLink(const std::string &type,const int &blogId);
+    int getFormattedLinkToPreviousBlog(const int &id);
+    int getFormattedLinkToNextBlog(const int &id);
     sqlite3 *&mDatabase;
     const std::regex mGetBlogIdRegexFormula;
     std::shared_mutex mWritingBlogsFileMutex;
