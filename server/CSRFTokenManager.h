@@ -7,9 +7,9 @@
 
 #include <sqlite3.h>
 
-class CSRFManager {
+class CSRFTokenManager {
 public:
-    explicit CSRFManager(sqlite3 *&database);
+    explicit CSRFTokenManager(sqlite3 *&database);
     void insertToken(std::string &sessionToken, std::string &page);
     void removeToken(const std::string &sessionToken);
     bool compareSessionToken(const std::string &sessionToken, const std::string &requestBody);

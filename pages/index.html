@@ -24,11 +24,11 @@
     <script>
         window.onload = function(){
             let xhttp = new XMLHttpRequest();
-            handleBlogFetch(xhttp);
+            receiveBlog(xhttp);
             xhttp.open("GET", "/recentblog", true);
             xhttp.send();
         };
-        function loadDoc(resource){
+        function loadPage(resource){
             let xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function(){
                 if(xhttp.readyState === 4 && xhttp.status === 200){
@@ -40,7 +40,7 @@
         function notZero(blogId){
             return blogId !== 0;
         }
-        function handleBlogFetch(xhttp){
+        function receiveBlog(xhttp){
             xhttp.onreadystatechange = function(){
                 if (xhttp.readyState === 4 && xhttp.status === 200) {
                     const blog = JSON.parse(this.responseText).value0;
@@ -61,7 +61,7 @@
         function loadBlog(blogToRequest){
             if(notZero(blogToRequest)) {
                 let xhttp = new XMLHttpRequest();
-                handleBlogFetch(xhttp);
+                receiveBlog(xhttp);
                 xhttp.open("GET", blogToRequest, true);
                 xhttp.send();
             }
@@ -103,7 +103,7 @@
             <ul>
                 <li style="float:left"><a href="#" >Jordan Bare - Developer</a></li>
                 <li style="float:right"><a href="#" onclick="loadBlogIndex()">Blogs</a></li>
-                <li style="float:right"><a href="#" onclick="loadDoc('/about')">About</a></li>
+                <li style="float:right"><a href="#" onclick="loadPage('/about')">About</a></li>
             </ul>
         </nav>
         <div id="content" class="textcol"></div>

@@ -10,14 +10,13 @@
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/strand.hpp>
-#include "CSRFManager.h"
+#include "CSRFTokenManager.h"
 #include "BlogManager.h"
 #include "CredentialsManager.h"
 
 class Session : public std::enable_shared_from_this<Session> {
 public:
-    Session(boost::asio::ssl::context& sslContext, boost::asio::ip::tcp::socket socket, std::unique_ptr<CSRFManager> &csrfManager, std::unique_ptr<BlogManager> &blogManager, std::unique_ptr<CredentialsManager> &credentialsManager, const std::string &pageRootFolder);
-    ~Session();
+    Session(boost::asio::ssl::context& sslContext, boost::asio::ip::tcp::socket socket, std::unique_ptr<CSRFTokenManager> &csrfManager, std::unique_ptr<BlogManager> &blogManager, std::unique_ptr<CredentialsManager> &credentialsManager, const std::string &pageRootFolder);
     void run();
 private:
     void onHandshake(boost::system::error_code ec);
@@ -41,7 +40,7 @@ private:
     boost::asio::strand<boost::asio::io_context::executor_type> mStrand;
     const std::string mPageRoot;
     bool mAuthorized;
-    std::unique_ptr<CSRFManager> &mCSRFManager;
+    std::unique_ptr<CSRFTokenManager> &mCSRFManager;
     std::unique_ptr<BlogManager> &mBlogManager;
     std::unique_ptr<CredentialsManager> &mCredentialsManager;
     boost::asio::basic_waitable_timer<std::chrono::steady_clock> mDeadline;

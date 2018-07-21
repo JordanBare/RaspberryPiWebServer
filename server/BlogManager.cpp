@@ -30,16 +30,16 @@ void BlogManager::createBlogFromSubmission(const std::string &blogContent) {
 
     std::stringstream stream;
     stream << boost::posix_time::second_clock::local_time();
-    std::string dateTime = stream.str();
+    const std::string dateTime = stream.str();
 
     if(!checkForBlogByTitle(title)){
         sqlite3_stmt *stmt;
-        if(sqlite3_prepare_v2(mDatabase, "INSERT INTO blogs (title, content, datetime) VALUES (?, ?, ?);", -1, &stmt, nullptr) != SQLITE_OK){
+        if(sqlite3_prepare_v2(mDatabase, "INSERT INTO blogs (title, datetime, content) VALUES (?, ?, ?);", -1, &stmt, nullptr) != SQLITE_OK){
             printDatabaseError();
         }
         sqlite3_bind_text(stmt, 1, title.c_str(), static_cast<int>(title.length()), SQLITE_TRANSIENT);
-        sqlite3_bind_text(stmt, 2, content.c_str(), static_cast<int>(content.length()), SQLITE_TRANSIENT);
-        sqlite3_bind_text(stmt, 3, dateTime.c_str(), static_cast<int>(dateTime.length()), SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 2, dateTime.c_str(), static_cast<int>(dateTime.length()), SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 3, content.c_str(), static_cast<int>(content.length()), SQLITE_TRANSIENT);
         if(sqlite3_step(stmt) != SQLITE_DONE){
             printDatabaseError();
         }
@@ -115,7 +115,7 @@ std::string BlogManager::retrieveFormattedBlogForRequest(const std::string &requ
     int blogId = convertIdToInt(requestString.substr(1,requestString.length()-1));
     std::stringstream blogStream;
     sqlite3_stmt *stmt;
-    if(sqlite3_prepare_v2(mDatabase, "SELECT title, content, datetime FROM blogs WHERE id = ?;", -1, &stmt, nullptr) != SQLITE_OK){
+    if(sqlite3_prepare_v2(mDatabase, "SELECT title, datetime, content FROM blogs WHERE id = ?;", -1, &stmt, nullptr) != SQLITE_OK){
         printDatabaseError();
     }
     if(sqlite3_bind_int(stmt, 1, blogId) != SQLITE_OK){
@@ -159,8 +159,7 @@ void BlogManager::removeBlog(const std::string &blogToRemove) {
 }
 
 int BlogManager::convertIdToInt(const std::string stringToConvert) {
-    int blogID = atoi(stringToConvert.c_str());
-    return blogID;
+    return std::stoi(stringToConvert);
 }
 
 bool BlogManager::checkForBlogByTitle(const std::string &blogTitle) {

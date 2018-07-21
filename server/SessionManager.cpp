@@ -17,7 +17,7 @@ SessionManager::SessionManager(boost::asio::io_context &ioc,
         mSSLContext(sslContext),
         mPageRoot(rootDir + "//pages//"),
         mTotalSessions(0),
-        mCSRFManager(std::make_unique<CSRFManager>(database)),
+        mCSRFTokenManager(std::make_unique<CSRFTokenManager>(database)),
         mBlogManager(std::make_unique<BlogManager>(database)),
         mCredentialsManager(std::make_unique<CredentialsManager>(mPageRoot)){
 
@@ -69,7 +69,7 @@ void SessionManager::onAccept(boost::system::error_code ec) {
         printErrorCode(ec);
         return;
     }
-    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFManager, mBlogManager, mCredentialsManager, mPageRoot)->run();
+    std::make_shared<Session>(mSSLContext, std::move(mSessionSocket), mCSRFTokenManager, mBlogManager, mCredentialsManager, mPageRoot)->run();
     mTotalSessions++;
     doAccept();
 }

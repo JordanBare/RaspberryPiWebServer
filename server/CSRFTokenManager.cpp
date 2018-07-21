@@ -6,15 +6,15 @@
 #include <iostream>
 #include <sstream>
 #include <boost/algorithm/string/replace.hpp>
-#include "CSRFManager.h"
+#include "CSRFTokenManager.h"
 
-CSRFManager::CSRFManager(sqlite3 *&database):mDatabase(database) {}
+CSRFTokenManager::CSRFTokenManager(sqlite3 *&database):mDatabase(database) {}
 
-void CSRFManager::printDatabaseError() {
+void CSRFTokenManager::printDatabaseError() {
     std::cout << sqlite3_errmsg(mDatabase) << std::endl;
 }
 
-std::string CSRFManager::generateToken() {
+std::string CSRFTokenManager::generateToken() {
     std::random_device rd;
     static thread_local std::mt19937 re{rd()};
     std::uniform_int_distribution<int> urd(97,122);
@@ -44,7 +44,7 @@ std::string CSRFManager::generateToken() {
     return csrfToken;
 }
 
-void CSRFManager::removeToken(const std::string &sessionToken) {
+void CSRFTokenManager::removeToken(const std::string &sessionToken) {
     sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(mDatabase, "DELETE FROM csrftokens WHERE token = ?;", -1, &stmt, nullptr) != SQLITE_OK){
         printDatabaseError();
@@ -58,7 +58,7 @@ void CSRFManager::removeToken(const std::string &sessionToken) {
     sqlite3_finalize(stmt);
 }
 
-bool CSRFManager::compareSessionToken(const std::string &sessionToken, const std::string &requestBody) {
+bool CSRFTokenManager::compareSessionToken(const std::string &sessionToken, const std::string &requestBody) {
     std::string tokenAttribute = "\n_csrf=";
     unsigned long tokenIndex = requestBody.find(tokenAttribute);
     //always change indexes based on csrf token name
@@ -70,7 +70,7 @@ bool CSRFManager::compareSessionToken(const std::string &sessionToken, const std
     return false;
 }
 
-void CSRFManager::insertToken(std::string &sessionToken, std::string &page) {
+void CSRFTokenManager::insertToken(std::string &sessionToken, std::string &page) {
     sessionToken = generateToken();
     boost::replace_all(page, "CSRF", sessionToken);
 }

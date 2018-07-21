@@ -6,12 +6,10 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Blog.h"
 
-Blog::Blog(std::string title, std::string content, std::string dateTime, int prevId, int nextId): mTitle(std::move(title)), mContent(std::move(content)), mDateTime(std::move(dateTime)), mPreviousId(prevId), mNextId(nextId){
-    /*
-    std::stringstream stream;
-    stream << boost::posix_time::second_clock::local_time();
-    mDateTime = stream.str();
-     */
-}
+Blog::Blog(std::string title, std::string dateTime, std::string content, int prevId, int nextId): mTitle(std::move(title)),
+                                                                                                  mDateTime(std::move(dateTime)),
+                                                                                                  mContent(std::move(content)),
+                                                                                                  mPreviousId(prevId),
+                                                                                                  mNextId(nextId){}
 
-Blog::Blog() {}
+Blog::Blog() = default;

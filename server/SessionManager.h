@@ -9,7 +9,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <sqlite3.h>
-#include "CSRFManager.h"
+#include "CSRFTokenManager.h"
 #include "BlogManager.h"
 #include "CredentialsManager.h"
 
@@ -28,7 +28,7 @@ private:
     boost::asio::io_context& mIOContext;
     boost::asio::ssl::context& mSSLContext;
     const std::string mPageRoot;
-    std::unique_ptr<CSRFManager> mCSRFManager;
+    std::unique_ptr<CSRFTokenManager> mCSRFTokenManager;
     std::unique_ptr<BlogManager> mBlogManager;
     std::unique_ptr<CredentialsManager> mCredentialsManager;
     std::atomic<unsigned int> mTotalSessions;

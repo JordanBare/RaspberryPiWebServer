@@ -9,7 +9,7 @@
 
 Session::Session(boost::asio::ssl::context  &sslContext,
                  boost::asio::ip::tcp::socket socket,
-                 std::unique_ptr<CSRFManager> &csrfManager,
+                 std::unique_ptr<CSRFTokenManager> &csrfManager,
                  std::unique_ptr<BlogManager> &blogManager,
                  std::unique_ptr<CredentialsManager> &credentialsManager,
                  const std::string &pageRootFolder): mSocket(std::move(socket)),
@@ -20,12 +20,7 @@ Session::Session(boost::asio::ssl::context  &sslContext,
                                                                mBlogManager(blogManager),
                                                                mCredentialsManager(credentialsManager),
                                                                mPageRoot(pageRootFolder),
-                                                               mAuthorized(false){
-}
-
-Session::~Session() {
-    std::cout << "6: Session terminated" << std::endl;
-}
+                                                               mAuthorized(false){}
 
 void Session::run() {
     std::cout << "1: Session created" << std::endl;
