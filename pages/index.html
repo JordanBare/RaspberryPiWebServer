@@ -23,15 +23,14 @@
     </style>
     <script>
         window.onload = function(){
-            var xhttp = new XMLHttpRequest();
+            let xhttp = new XMLHttpRequest();
             handleBlogFetch(xhttp);
             xhttp.open("GET", "/recentblog", true);
             xhttp.send();
-        }
-
+        };
         function loadDoc(resource){
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function() {
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function(){
                 if(xhttp.readyState === 4 && xhttp.status === 200){
                     document.getElementById("content").innerHTML = this.responseText;
                 }};
@@ -39,14 +38,13 @@
             xhttp.send();
         }
         function notZero(blogId){
-            return blogId != 0;
-
+            return blogId !== 0;
         }
         function handleBlogFetch(xhttp){
-            xhttp.onreadystatechange = function () {
+            xhttp.onreadystatechange = function(){
                 if (xhttp.readyState === 4 && xhttp.status === 200) {
-                    var blog = JSON.parse(this.responseText).value0;
-                    var formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p>" + blog.value2 + "</p></article>";
+                    const blog = JSON.parse(this.responseText).value0;
+                    let formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p>" + blog.value2 + "</p></article>";
                     if (notZero(blog.value3)) {
                         formattedBlog += formatBlogButton(blog.value3, "Previous");
                     }
@@ -57,24 +55,40 @@
                 }
             };
         }
-        function formatBlogButton(blogId, type){
-            return "<button onclick=\"loadBlog(\'" + blogId + "\')\">" + type + "</button>";
+        function formatBlogButton(blogId, name){
+            return "<button onclick=\"loadBlog(\'" + blogId + "\')\">" + name + "</button>";
         }
         function loadBlog(blogToRequest){
             if(notZero(blogToRequest)) {
-                var xhttp = new XMLHttpRequest();
+                let xhttp = new XMLHttpRequest();
                 handleBlogFetch(xhttp);
                 xhttp.open("GET", blogToRequest, true);
                 xhttp.send();
             }
         }
         function loadBlogIndex(){
-            var xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function(){
                 if (xhttp.readyState === 4 && xhttp.status === 200) {
-                    var blogs = JSON.parse(this.responseText).value0;
-
-                    document.getElementById("content").innerHTML = formattedBlog;
+                    const blogArray = JSON.parse(this.responseText).value0;
+                    const blogArrayLength = blogArray.length;
+                    let formattedIndex = "<table>";
+                    let count = 1;
+                    formattedIndex += "<tr>";
+                    blogArray.forEach(function(element){
+                        formattedIndex += "<td>";
+                        formattedIndex += formatBlogButton(element.key,element.value);
+                        formattedIndex += "</td>";
+                        if(count % 3 === 0 && count !== blogArrayLength){
+                            formattedIndex += "</tr>";
+                            formattedIndex += "<tr>";
+                        }
+                        count++;
+                    });
+                    formattedIndex += "</tr>";
+                    formattedIndex += "</table>";
+                    console.log(formattedIndex);
+                    document.getElementById("content").innerHTML = formattedIndex;
                 }
             };
             xhttp.open("GET", "/blogs", true);
@@ -88,7 +102,7 @@
         <nav>
             <ul>
                 <li style="float:left"><a href="#" >Jordan Bare - Developer</a></li>
-                <li style="float:right"><a href="#" onclick="loadDoc('/blogs')">Blogs</a></li>
+                <li style="float:right"><a href="#" onclick="loadBlogIndex()">Blogs</a></li>
                 <li style="float:right"><a href="#" onclick="loadDoc('/about')">About</a></li>
             </ul>
         </nav>

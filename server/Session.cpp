@@ -201,10 +201,10 @@ void Session::createGetResponse() {
             else if(resource == "/about"){
                 resourceFilePath.append("about.html");
             } else if(resource == "/blogs"){
-                resourceFilePath.append("blogs.html");
-                mBlogManager->lockRead();
-                fillResponseBodyWithFile(resourceFilePath);
-                mBlogManager->unlockRead();
+                mResponse.set(boost::beast::http::field::content_type, "application/json");
+                std::string blogIndex = mBlogManager->retrieveBlogIndex();
+                std::cout << blogIndex << std::endl;
+                boost::beast::ostream(mResponse.body()) << blogIndex;
                 return;
             } else if(resource == "/login" || "/admin"){
                 if(mAuthorized){
@@ -244,11 +244,9 @@ void Session::createPostResponse() {
                     resourceFilePath.append("login.html");
                 } else if (resource == "/addblog") {
                     mBlogManager->createBlogFromSubmission(body);
-                    mBlogManager->writeBlogIndexPage(resourceFilePath);
                     resourceFilePath.append("admin.html");
                 } else if (resource == "/removeblog") {
                     mBlogManager->removeBlog(body);
-                    mBlogManager->writeBlogIndexPage(resourceFilePath);
                     resourceFilePath.append("admin.html");
                 }
             } else {

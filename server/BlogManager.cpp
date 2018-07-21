@@ -7,10 +7,12 @@
 #include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cereal/archives/json.hpp>
+#include <cereal/types/map.hpp>
 #include "BlogManager.h"
 #include "Blog.h"
 
-BlogManager::BlogManager(sqlite3 *&database): mDatabase(database), mGetBlogIdRegexFormula("^/[1-9][0-9]{0,4}") {}
+BlogManager::BlogManager(sqlite3 *&database): mDatabase(database), mGetBlogIdRegexFormula("^/[1-9][0-9]{0,4}") {
+}
 
 void BlogManager::printDatabaseError() {
     std::cout << sqlite3_errmsg(mDatabase) << std::endl;
@@ -42,6 +44,7 @@ void BlogManager::createBlogFromSubmission(const std::string &blogContent) {
             printDatabaseError();
         }
         sqlite3_finalize(stmt);
+        updateBlogIndex();
     }
 }
 
@@ -97,8 +100,10 @@ std::string BlogManager::retrieveMostRecentBlog() {
                 reinterpret_cast<char const *>(sqlite3_column_text(stmt, 3)),
                 getFormattedLinkToPreviousBlog(blogId),
                 0);
-        cereal::JSONOutputArchive jsonOutputArchive(blogStream);
-        jsonOutputArchive(*blog);
+        {
+            cereal::JSONOutputArchive jsonOutputArchive(blogStream);
+            jsonOutputArchive(*blog);
+        }
     } else {
         printDatabaseError();
     }
@@ -150,6 +155,7 @@ void BlogManager::removeBlog(const std::string &blogToRemove) {
         printDatabaseError();
     }
     sqlite3_finalize(stmt);
+    updateBlogIndex();
 }
 
 int BlogManager::convertIdToInt(const std::string stringToConvert) {
@@ -178,45 +184,33 @@ bool BlogManager::checkForValidBlogRequest(const std::string &requestedBlog) {
     return std::regex_match(requestedBlog, mGetBlogIdRegexFormula);
 }
 
-void BlogManager::writeBlogIndexPage(const std::string &pageDir) {
+void BlogManager::updateBlogIndex() {
     sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(mDatabase, "SELECT id, title FROM blogs ORDER BY id;", -1, &stmt, nullptr) != SQLITE_OK){
         printDatabaseError();
     }
-    std::stringstream blogIndex;
-    blogIndex << "<br><br><table id=\"blogs\">";
-
+    std::map<int,std::string> blogIndex;
     while(sqlite3_step(stmt) == SQLITE_ROW){
-        blogIndex << "<tr>";
-        formatIndexPage(stmt, blogIndex);
-        for(unsigned short i = 0; i < 2 && sqlite3_step(stmt) == SQLITE_ROW; ++i){
-            formatIndexPage(stmt, blogIndex);
-        }
-       blogIndex << "</tr>";
+        blogIndex.emplace(sqlite3_column_int(stmt,0), reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1)));
     }
-    blogIndex << "</table>";
     sqlite3_finalize(stmt);
-    mWritingBlogsFileMutex.lock();
-    std::ofstream blogIndexPage(pageDir + "blogs.html");
-    if(blogIndexPage.is_open()){
-        blogIndexPage << blogIndex.str();
-        blogIndexPage.close();
+    std::stringstream stream;
+    {
+        cereal::JSONOutputArchive jsonOutputArchive(stream);
+        jsonOutputArchive(blogIndex);
     }
-    mWritingBlogsFileMutex.unlock();
+    mUpdateBlogIndexMutex.lock();
+    mJSONifiedIndex = stream.str();
+    mUpdateBlogIndexMutex.unlock();
 }
 
-void BlogManager::formatIndexPage(sqlite3_stmt *stmt, std::stringstream &blogIndex) const {
-    blogIndex << "<td><button onclick=\"loadDoc(\'"
-              << sqlite3_column_int(stmt, 0)
-              << "\')\">"
-              << reinterpret_cast<char const *>(sqlite3_column_text(stmt, 1))
-              << "</button></td>";
+std::string BlogManager::retrieveBlogIndex() {
+    mUpdateBlogIndexMutex.lock_shared();
+    std::string blogIndex = mJSONifiedIndex;
+    mUpdateBlogIndexMutex.unlock_shared();
+    return blogIndex;
 }
 
-void BlogManager::lockRead() {
-    mWritingBlogsFileMutex.lock_shared();
-}
-
-void BlogManager::unlockRead() {
-    mWritingBlogsFileMutex.unlock_shared();
+void BlogManager::initializeIndexFromDatabase() {
+    updateBlogIndex();
 }

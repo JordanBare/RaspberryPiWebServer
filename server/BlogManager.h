@@ -12,24 +12,24 @@
 class BlogManager {
 public:
     explicit BlogManager(sqlite3 *&database);
+    void initializeIndexFromDatabase();
     bool checkForValidBlogRequest(const std::string &requestedBlog);
     std::string retrieveFormattedBlogForRequest(const std::string &requestString);
     void createBlogFromSubmission(const std::string &blogContent);
     std::string retrieveMostRecentBlog();
     void removeBlog(const std::string &blogToRemove);
-    void writeBlogIndexPage(const std::string &pageDir);
-    void lockRead();
-    void unlockRead();
+    std::string retrieveBlogIndex();
 private:
     void printDatabaseError();
     bool checkForBlogByTitle(const std::string &blogTitle);
     int convertIdToInt(std::string stringToConvert);
-    void formatIndexPage(sqlite3_stmt *stmt, std::stringstream &blogIndex) const;
     int getFormattedLinkToPreviousBlog(const int &id);
     int getFormattedLinkToNextBlog(const int &id);
+    void updateBlogIndex();
     sqlite3 *&mDatabase;
     const std::regex mGetBlogIdRegexFormula;
-    std::shared_mutex mWritingBlogsFileMutex;
+    std::string mJSONifiedIndex;
+    std::shared_mutex mUpdateBlogIndexMutex;
 };
 
 #endif //SERVER_BLOGMANAGER_H

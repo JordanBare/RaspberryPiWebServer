@@ -17,10 +17,10 @@ class SessionManager : public std::enable_shared_from_this<SessionManager> {
 public:
     SessionManager(boost::asio::io_context& ioc, boost::asio::ssl::context &sslContext, boost::asio::ip::tcp::endpoint endpoint, sqlite3 *&database, const std::string &rootDir);
     void run();
-    void doAccept();
-    void onAccept(boost::system::error_code ec);
     unsigned int reportSessionsHeld();
 private:
+    void doAccept();
+    void onAccept(boost::system::error_code ec);
     void printErrorCode(boost::system::error_code &ec);
 
     boost::asio::ip::tcp::acceptor mAcceptor;

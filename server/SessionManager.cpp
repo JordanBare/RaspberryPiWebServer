@@ -49,6 +49,8 @@ SessionManager::SessionManager(boost::asio::io_context &ioc,
 }
 
 void SessionManager::run() {
+    //Needed to prepare JSON string of blog index
+    mBlogManager->initializeIndexFromDatabase();
     if(!mAcceptor.is_open()){
         return;
     }
