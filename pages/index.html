@@ -18,7 +18,7 @@
 
         button{display:inline-block;text-align:center;text-decoration:none}
         table{table-layout:fixed;width:100%}
-        td button{width:100%;padding:16px}
+        td button{background-color:#4CAF50;border-radius:4px;width:100%;padding:16px}
         td button:hover{background-color:#111;color:#CC7832}
         td{width:33%}
     </style>
@@ -45,14 +45,14 @@
         }
         function receiveBlog(xhttp){
             xhttp.onreadystatechange = function(){
-                if (xhttp.readyState === 4 && xhttp.status === 200) {
+                if (xhttp.readyState === 4 && xhttp.status === 200){
                     const blog = JSON.parse(this.responseText).value0;
                     let formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p>" + blog.value2 + "</p></article>";
-                    if (notZero(blog.value3)) {
-                        formattedBlog += formatBlogButton(blog.value3, "Previous");
+                    if (notZero(blog.value3)){
+                        formattedBlog += formatBlogButton(blog.value3,"Previous");
                     }
-                    if (notZero(blog.value4)) {
-                        formattedBlog += formatBlogButton(blog.value4, "Next");
+                    if (notZero(blog.value4)){
+                        formattedBlog += formatBlogButton(blog.value4,"Next");
                     }
                     document.getElementById("content").innerHTML = formattedBlog;
                 }
@@ -62,7 +62,7 @@
             return "<button onclick=\"loadBlog(\'" + blogId + "\')\">" + name + "</button>";
         }
         function loadBlog(blogToRequest){
-            if(notZero(blogToRequest)) {
+            if(notZero(blogToRequest)){
                 let xhttp = new XMLHttpRequest();
                 receiveBlog(xhttp);
                 sendRequest(xhttp,blogToRequest);
@@ -71,7 +71,7 @@
         function loadBlogIndex(){
             let xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function(){
-                if (xhttp.readyState === 4 && xhttp.status === 200) {
+                if (xhttp.readyState === 4 && xhttp.status === 200){
                     const blogArray = JSON.parse(this.responseText).value0;
                     const blogArrayLength = blogArray.length;
                     let formattedIndex = "<br><table>";
@@ -87,8 +87,7 @@
                         }
                         count++;
                     });
-                    formattedIndex += "</tr>";
-                    formattedIndex += "</table>";
+                    formattedIndex += "</tr></table>";
                     document.getElementById("content").innerHTML = formattedIndex;
                 }
             };
