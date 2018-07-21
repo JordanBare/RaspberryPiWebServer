@@ -197,9 +197,7 @@ void Session::createGetResponse() {
                 resourceFilePath.append("about.html");
             } else if(resource == "/blogs"){
                 mResponse.set(boost::beast::http::field::content_type, "application/json");
-                std::string blogIndex = mBlogManager->retrieveBlogIndex();
-                std::cout << blogIndex << std::endl;
-                boost::beast::ostream(mResponse.body()) << blogIndex;
+                boost::beast::ostream(mResponse.body()) << mBlogManager->retrieveBlogIndex();
                 return;
             } else if(resource == "/login" || "/admin"){
                 if(mAuthorized){
