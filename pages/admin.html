@@ -11,15 +11,19 @@
             xhttp.onreadystatechange = function(){
                 if (xhttp.readyState === 4 && xhttp.status === 200) {
                     const blogArray = JSON.parse(this.responseText).value0;
-                    let idOptions = document.getElementById("idoptions");
+                    let options;
                     blogArray.forEach(function(element){
-                       idOptions.add(new Option(element.value,element.key));
+                       options += createOption(element.key,element.value);
                     });
+                    document.getElementById("idoptions").innerHTML = options;
                 }
             };
             xhttp.open("GET", "/blogs", true);
             xhttp.send();
         };
+        function createOption(key,value){
+            return "<option value=\"" + key + "\">" + value + "</option>";
+        }
     </script>
 </head>
 <body>
