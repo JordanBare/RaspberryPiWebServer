@@ -8,11 +8,14 @@
     <title>Black Sun</title>
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <style>
+        body{background-color:#333}
         .textcol{color:#7E8889}
         .cenbackcol{margin:0 auto;width:80%;background-color:#142634}
         #navl{list-style-type:none;margin:0;padding:0;overflow:hidden}
-        .nava{display:block;color:white;text-align:center;padding:14px 16px;text-decoration:none}
-        .nava:hover{background-color:#111}
+        .l{float:left}
+        .r{float:right}
+        .navb{display:block;color:black}
+        .navb:hover{background-color:#111}
         article{padding-left:5%;padding-right:5%;padding-bottom:2%}
         button{display:inline-block;text-align:center;text-decoration:none;border:none;padding:16px}
         #btbl{table-layout:fixed;width:100%}
@@ -52,26 +55,25 @@
                 if (xhttp.readyState === 4 && xhttp.status === 200){
                     const blog = JSON.parse(this.responseText).value0;
                     let formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p id='bpara'>" + blog.value2 + "</p><div id='bdiv'>";
-                    if (notZero(blog.value3)){
-                        formattedBlog += formatBlogBtn(blog.value3,"Previous");
-                    } else {
-                        formattedBlog += getInvisBtn();
-                    }
-                    if (notZero(blog.value4)){
-                        formattedBlog += formatBlogBtn(blog.value4,"Next");
-                    } else {
-                        formattedBlog += getInvisBtn();
-                    }
+                    formattedBlog += addBtn(blog.value3,"Previous");
+                    formattedBlog += addBtn(blog.value4,"Next");
                     formattedBlog += "</div></article>";
                     document.getElementById("content").innerHTML = formattedBlog;
                 }
             };
         }
-        function formatBlogBtn(blogId, name){
-            return "<button class='bbtn bbtns' onclick=\"loadBlog(\'" + blogId + "\')\">" + name + "</button>";
+        function addBtn(index,dir){
+            if (notZero(index)){
+                return formatBlogBtn(index,dir);
+            } else {
+                return getInvisBtn();
+            }
+        }
+        function formatBlogBtn(blogId,name){
+            return "<button class='bbtn bbtns' onclick='loadBlog(" + blogId + ")'>" + name + "</button>";
         }
         function getInvisBtn(){
-            return "<button class='tbbtn bbtns'>";
+            return "<button class='tbbtn bbtns'></button>";
         }
         function loadBlog(blogToRequest){
             if(notZero(blogToRequest)){
@@ -80,15 +82,14 @@
                 sendRequest(xhttp,blogToRequest);
             }
         }
-        function loadBlogIndex(){
+        function loadIndex(){
             let xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function(){
                 if (xhttp.readyState === 4 && xhttp.status === 200){
                     const blogArray = JSON.parse(this.responseText).value0;
                     const blogArrayLength = blogArray.length;
-                    let formattedIndex = "<br><table id='btbl'>";
+                    let formattedIndex = "<br><table id='btbl'><tr>";
                     let count = 1;
-                    formattedIndex += "<tr>";
                     blogArray.forEach(function(element){
                         formattedIndex += "<td>";
                         formattedIndex += formatBlogBtn(element.key,element.value);
@@ -97,7 +98,7 @@
                             formattedIndex += "</tr>";
                             formattedIndex += "<tr>";
                         }
-                        count++;
+                        ++count;
                     });
                     formattedIndex += "</tr></table>";
                     document.getElementById("content").innerHTML = formattedIndex;
@@ -107,14 +108,14 @@
         }
     </script>
 </head>
-<body style="background-color:#333">
+<body>
 <div>
     <div class="cenbackcol">
         <nav>
             <ul id='navl'>
-                <li style="float:left"><a href="#" class="nava" onclick="loadBlog('/recentblog')">Jordan Bare - Developer</a></li>
-                <li style="float:right"><a href="#" class="nava" onclick="loadBlogIndex()">Blogs</a></li>
-                <li style="float:right"><a href="#" class="nava" onclick="loadPage('/about')">About</a></li>
+                <li class="l"><button class="navb" onclick="loadBlog('/recentblog')">Jordan Bare - Developer</button></li>
+                <li class="r"><button class="navb" onclick="loadIndex()">Blogs</button></li>
+                <li class="r"><button class="navb" onclick="loadPage('/about')">About</button></li>
             </ul>
         </nav>
         <div id="content" class="textcol"></div>
