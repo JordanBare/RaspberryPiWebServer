@@ -71,7 +71,7 @@
             return "<button class='bbtn bbtns' onclick=\"loadBlog(\'" + blogId + "\')\">" + name + "</button>";
         }
         function getInvisBtn(){
-            return "<button class='tbbtn bbtns'/>"
+            return "<button class='tbbtn bbtns'>";
         }
         function loadBlog(blogToRequest){
             if(notZero(blogToRequest)){
@@ -86,6 +86,8 @@
                 if (xhttp.readyState === 4 && xhttp.status === 200){
                     const blogArray = JSON.parse(this.responseText).value0;
                     const blogArrayLength = blogArray.length;
+                    let tbl = document.createElement('table');
+                    tbl.id = 'btbl';
                     let formattedIndex = "<br><table id='btbl'>";
                     let count = 1;
                     formattedIndex += "<tr>";
