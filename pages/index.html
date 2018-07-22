@@ -9,18 +9,22 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <style>
         .textcol{color:#7E8889}
-        .cenbackcol{background-color:#142634}
-        .center{margin:0 auto;width:80%}
-        nav ul{list-style-type:none;margin:0;padding:0;overflow:hidden}
-        nav li a{display:block;color:white;text-align:center;padding:14px 16px;text-decoration:none}
-        nav li a:hover{background-color:#111}
-        article{padding:14px}
-
-        button{display:inline-block;text-align:center;text-decoration:none}
-        table{table-layout:fixed;width:100%}
-        td button{background-color:#4CAF50;border-radius:4px;width:100%;padding:16px}
-        td button:hover{background-color:#111;color:#CC7832}
-        td{width:33%}
+        .cenbackcol{margin:0 auto;width:80%;background-color:#142634}
+        #navl{list-style-type:none;margin:0;padding:0;overflow:hidden}
+        .nava{display:block;color:white;text-align:center;padding:14px 16px;text-decoration:none}
+        .nava:hover{background-color:#111}
+        article{padding-left:5%;padding-right:5%;padding-bottom:2%}
+        button{display:inline-block;text-align:center;text-decoration:none;border:none;padding:16px}
+        #btbl{table-layout:fixed;width:100%}
+        #btbl td{width:33%}
+        #btbl td button{background-color:#4CAF50;border-radius:4px;width:100%}
+        #btbl td button:hover{background-color:#111;color:#CC7832}
+        #bpara{overflow:scroll;height:28em}
+        #bdiv{text-align:center}
+        .bbtns{width:8em}
+        .bbtn{background-color:chartreuse;}
+        .bbtn:hover{background-color:#111;color:#CC7832}
+        .tbbtn{background:transparent}
     </style>
     <script>
         window.onload = function(){
@@ -29,7 +33,7 @@
             sendRequest(xhttp,"/recentblog");
         };
         function sendRequest(xhttp,resource){
-            xhttp.open("GET", resource, true);
+            xhttp.open("GET",resource,true);
             xhttp.send();
         }
         function loadPage(resource){
@@ -47,19 +51,27 @@
             xhttp.onreadystatechange = function(){
                 if (xhttp.readyState === 4 && xhttp.status === 200){
                     const blog = JSON.parse(this.responseText).value0;
-                    let formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p>" + blog.value2 + "</p></article>";
+                    let formattedBlog = "<article><h2>" + blog.value0 + "</h2><h3>" + blog.value1 + "</h3><p id='bpara'>" + blog.value2 + "</p><div id='bdiv'>";
                     if (notZero(blog.value3)){
-                        formattedBlog += formatBlogButton(blog.value3,"Previous");
+                        formattedBlog += formatBlogBtn(blog.value3,"Previous");
+                    } else {
+                        formattedBlog += getInvisBtn();
                     }
                     if (notZero(blog.value4)){
-                        formattedBlog += formatBlogButton(blog.value4,"Next");
+                        formattedBlog += formatBlogBtn(blog.value4,"Next");
+                    } else {
+                        formattedBlog += getInvisBtn();
                     }
+                    formattedBlog += "</div></article>";
                     document.getElementById("content").innerHTML = formattedBlog;
                 }
             };
         }
-        function formatBlogButton(blogId, name){
-            return "<button onclick=\"loadBlog(\'" + blogId + "\')\">" + name + "</button>";
+        function formatBlogBtn(blogId, name){
+            return "<button class='bbtn bbtns' onclick=\"loadBlog(\'" + blogId + "\')\">" + name + "</button>";
+        }
+        function getInvisBtn(){
+            return "<button class='tbbtn bbtns'/>"
         }
         function loadBlog(blogToRequest){
             if(notZero(blogToRequest)){
@@ -74,12 +86,12 @@
                 if (xhttp.readyState === 4 && xhttp.status === 200){
                     const blogArray = JSON.parse(this.responseText).value0;
                     const blogArrayLength = blogArray.length;
-                    let formattedIndex = "<br><table>";
+                    let formattedIndex = "<br><table id='btbl'>";
                     let count = 1;
                     formattedIndex += "<tr>";
                     blogArray.forEach(function(element){
                         formattedIndex += "<td>";
-                        formattedIndex += formatBlogButton(element.key,element.value);
+                        formattedIndex += formatBlogBtn(element.key,element.value);
                         formattedIndex += "</td>";
                         if(count % 3 === 0 && count !== blogArrayLength){
                             formattedIndex += "</tr>";
@@ -97,12 +109,12 @@
 </head>
 <body style="background-color:#333">
 <div>
-    <div class="center cenbackcol">
+    <div class="cenbackcol">
         <nav>
-            <ul>
-                <li style="float:left"><a href="#" onclick="loadBlog('/recentblog')">Jordan Bare - Developer</a></li>
-                <li style="float:right"><a href="#" onclick="loadBlogIndex()">Blogs</a></li>
-                <li style="float:right"><a href="#" onclick="loadPage('/about')">About</a></li>
+            <ul id='navl'>
+                <li style="float:left"><a href="#" class="nava" onclick="loadBlog('/recentblog')">Jordan Bare - Developer</a></li>
+                <li style="float:right"><a href="#" class="nava" onclick="loadBlogIndex()">Blogs</a></li>
+                <li style="float:right"><a href="#" class="nava" onclick="loadPage('/about')">About</a></li>
             </ul>
         </nav>
         <div id="content" class="textcol"></div>
