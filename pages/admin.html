@@ -5,6 +5,22 @@
     <title>Admin</title>
     <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
     <style>.center{margin:auto;width:40%}.txt{font-size:16pt}.submit{width:50%}textarea{font-size:16pt}</style>
+    <script>
+        window.onload = function() {
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function(){
+                if (xhttp.readyState === 4 && xhttp.status === 200) {
+                    const blogArray = JSON.parse(this.responseText).value0;
+                    let idOptions = document.getElementById("idoptions");
+                    blogArray.forEach(function(element){
+                       idOptions.add(new Option(element.value,element.key));
+                    });
+                }
+            };
+            xhttp.open("GET", "/blogs", true);
+            xhttp.send();
+        };
+    </script>
 </head>
 <body style="background-color:#333">
 <div class="center">
@@ -12,13 +28,13 @@
     <form action="/addblog" enctype="text/plain" method="post" id="blogform">
         <input class="txt" name="title" type="text" size="40">
         <br><br>
-        <textarea form="blogform" name="blog" rows="10" cols="60" maxlength="3000"></textarea>
+        <textarea form="blogform" name="blog" rows="10" cols="60"></textarea>
         <input name="_csrf" type="hidden" value="CSRF">
         <br><br><input class="submit txt" type="submit" value="Submit">
     </form>
     <br><br>
-    <form action="/removeblog" enctype="text/plain" method="post">
-        <input class="txt" name="id" type="text" size="6" maxlength="6">
+    <form action="/removeblog" enctype="text/plain" method="post" id="removeform">
+        <select id="idoptions" name="id" size="3" form="removeform"></select>
         <input name="_csrf" type="hidden" value="CSRF">
         <br><br><input class="submit txt" type="submit" value="Submit">
     </form>
