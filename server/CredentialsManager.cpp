@@ -25,6 +25,9 @@ CredentialsManager::CredentialsManager() {
     }
     hashCredential(password, salt);
     mServerCredentials = std::make_unique<Credentials>(user, password, salt);
+    OPENSSL_cleanse(&user,user.length());
+    OPENSSL_cleanse(&password,password.length());
+    OPENSSL_cleanse(&salt,salt.size());
 }
 
 bool CredentialsManager::compareCredentials(std::string &body) {
@@ -63,19 +66,12 @@ void CredentialsManager::cleanseCredentials(std::string &user, std::string &pass
 
 void CredentialsManager::hashCredential(std::string &credential, std::vector<unsigned char> &salt) {
     unsigned char digest[32];
-    unsigned char* saltArray = salt.data();
-    std::cout << saltArray << std::endl;
-    char cred[credential.length()+1];
-    strcpy(cred, credential.c_str());
-    std::cout << cred << std::endl;
     SHA256_CTX context;
     SHA256_Init(&context);
-    SHA256_Update(&context, cred, credential.length());
-    SHA256_Update(&context, saltArray, 32);
+    SHA256_Update(&context, credential.data(), credential.length());
+    SHA256_Update(&context, salt.data(), 32);
     SHA256_Final(digest, &context);
     credential.clear();
     credential.append(reinterpret_cast<char*>(digest), sizeof(digest));
-    std::cout << credential << std::endl;
     OPENSSL_cleanse(digest,strlen((char*)digest));
-    OPENSSL_cleanse(cred,strlen(cred));
 }
