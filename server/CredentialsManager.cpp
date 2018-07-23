@@ -2,11 +2,11 @@
 // Created by Jordan Bare on 7/12/18.
 //
 
-#include <cereal/archives/portable_binary.hpp>
 #include "CredentialsManager.h"
 #include <openssl/crypto.h>
 #include <openssl/sha.h>
 #include <random>
+#include <iostream>
 
 CredentialsManager::CredentialsManager() {
     std::cout << "Enter your name:" << std::endl;
@@ -41,13 +41,11 @@ bool CredentialsManager::compareCredentials(std::string &body) {
     OPENSSL_cleanse(&body, body.length());
 
     if(user == mServerCredentials->getUser()){
-        std::cout << "User pass" << std::endl;
         if(comparePasswords(password)){
             std::cout << mServerCredentials->getPassword() << " : " << password << std::endl;
             cleanseCredentials(user,password);
             return true;
         }
-        std::cout << "Password pass" << std::endl;
     }
     cleanseCredentials(user,password);
     return false;
