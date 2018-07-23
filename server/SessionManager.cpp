@@ -19,7 +19,7 @@ SessionManager::SessionManager(boost::asio::io_context &ioc,
         mTotalSessions(0),
         mCSRFTokenManager(std::make_unique<CSRFTokenManager>(database)),
         mBlogManager(std::make_unique<BlogManager>(database)),
-        mCredentialsManager(std::make_unique<CredentialsManager>(mPageRoot)){
+        mCredentialsManager(std::make_unique<CredentialsManager>()){
 
     boost::system::error_code ec;
     mAcceptor.open(endpoint.protocol(), ec);

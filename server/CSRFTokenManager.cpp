@@ -8,7 +8,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include "CSRFTokenManager.h"
 
-CSRFTokenManager::CSRFTokenManager(sqlite3 *&database):mDatabase(database) {}
+CSRFTokenManager::CSRFTokenManager(sqlite3 *&database):mDatabase(database){}
 
 void CSRFTokenManager::printDatabaseError() {
     std::cout << sqlite3_errmsg(mDatabase) << std::endl;
@@ -17,13 +17,23 @@ void CSRFTokenManager::printDatabaseError() {
 std::string CSRFTokenManager::generateToken() {
     std::random_device rd;
     static thread_local std::mt19937 re{rd()};
-    std::uniform_int_distribution<int> urd(97,122);
+    std::uniform_int_distribution<int> urd1(97,122);
+    std::uniform_int_distribution<int> urd2(65,90);
+    std::uniform_int_distribution<int> urd3(48,57);
+    std::uniform_int_distribution<int> urd4(1,3);
     std::string csrfToken;
     bool duplicate = true;
     while(duplicate){
         std::stringstream randomStream;
         for(int i = 0; i < 20; ++i){
-            randomStream << char(urd(re));
+            if(urd4(re) == 1){
+                randomStream << char(urd1(re));
+            } else if(urd4(re) == 2){
+                randomStream << char(urd2(re));
+            } else {
+                randomStream << char(urd3(re));
+            }
+
         }
         csrfToken = randomStream.str();
 

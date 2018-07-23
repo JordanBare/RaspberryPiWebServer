@@ -3,29 +3,28 @@
 //
 
 #include <openssl/crypto.h>
+#include <openssl/sha.h>
+#include <utility>
 #include "Credentials.h"
 
-Credentials::Credentials(std::string userName, std::string password): mUserName(std::move(userName)), mPassword(std::move(password)) {}
+Credentials::Credentials(std::string userName, std::string password, std::vector<unsigned char> salt): mUserName(std::move(userName)),
+                                                                                            mPassword(std::move(password)),
+                                                                                            mSalt(std::move(salt)) {}
 
 Credentials::~Credentials() {
     OPENSSL_cleanse(&mUserName, mUserName.length());
     OPENSSL_cleanse(&mPassword, mPassword.length());
+    OPENSSL_cleanse(&mSalt, 32);
 }
 
-bool Credentials::compareUserName(std::string &sessionUserName) {
-    if(sessionUserName == mUserName){
-        OPENSSL_cleanse(&sessionUserName, sessionUserName.length());
-        return true;
-    }
-    OPENSSL_cleanse(&sessionUserName, sessionUserName.length());
-    return false;
+std::string &Credentials::getUser() {
+    return mUserName;
 }
 
-bool Credentials::comparePassword(std::string &sessionPassword) {
-    if(sessionPassword == mPassword){
-        OPENSSL_cleanse(&sessionPassword, sessionPassword.length());
-        return true;
-    }
-    OPENSSL_cleanse(&sessionPassword, sessionPassword.length());
-    return false;
+std::string &Credentials::getPassword() {
+    return mPassword;
+}
+
+std::vector<unsigned char>& Credentials::getSalt() {
+    return mSalt;
 }

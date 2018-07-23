@@ -6,24 +6,19 @@
 #define SERVER_CREDENTIALS_H
 
 #include <string>
-#include <cereal/access.hpp>
-#include <cereal/types/string.hpp>
+#include <vector>
 
 class Credentials {
 public:
-    Credentials() = default;
-    Credentials(std::string userName, std::string password);
+    Credentials(std::string userName, std::string password, std::vector<unsigned char> salt);
     ~Credentials();
-    bool compareUserName(std::string &sessionUserName);
-    bool comparePassword(std::string &sessionPassword);
+    std::string &getUser();
+    std::string &getPassword();
+    std::vector<unsigned char>& getSalt();
 private:
-    std::string hashCredentials(const std::string &credential);
     std::string mUserName;
     std::string mPassword;
-    friend class cereal::access;
-    template <class Archive> void serialize(Archive &ar) {
-        ar(mUserName,mPassword);
-    }
+    std::vector<unsigned char> mSalt;
 };
 
 #endif //SERVER_CREDENTIALS_H

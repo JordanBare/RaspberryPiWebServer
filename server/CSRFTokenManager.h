@@ -16,8 +16,13 @@ public:
 private:
     void printDatabaseError();
     std::string generateToken();
-
     sqlite3 *&mDatabase;
+    /*
+    std::uniform_int_distribution<int> mRandURD = (1,3);
+    std::uniform_int_distribution<int> mNumURD(48,57);
+    std::uniform_int_distribution<int> mCapURD(65,90);
+    std::uniform_int_distribution<int> mLowURD(97,122);
+     */
 };
 
 #endif //SERVER_CSRFMANAGER_H

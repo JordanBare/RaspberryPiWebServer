@@ -3,41 +3,31 @@
 //
 
 #include <cereal/archives/portable_binary.hpp>
-#include <fstream>
 #include "CredentialsManager.h"
+#include <openssl/crypto.h>
+#include <openssl/sha.h>
+#include <random>
 
-void CredentialsManager::checkForCredentialsFile() {
-    /*
-    std::string credFileName = mCredentialsDirectory + "loginInfo.txt";
-    std::ifstream credentialsInFile(credFileName);
-    if(!credentialsInFile.is_open()){
-        std::string userName;
-        std::string password;
-        std::cout << "Enter the Username: " << std::endl;
-        std::cin >> userName;
-        std::cout << "Enter the Password: " << std::endl;
-        std::cin >> password;
-        std::unique_ptr credentials = std::make_unique<Credentials>(userName, password);
-        OPENSSL_cleanse(&userName, userName.length());
-        OPENSSL_cleanse(&password, password.length());
-        std::ofstream credentialsOutFile(credFileName);
-        if(credentialsOutFile.is_open()){
-            cereal::PortableBinaryOutputArchive outputArchive(credentialsOutFile);
-            outputArchive(*credentials);
-            credentialsOutFile.close();
-        }
-    } else {
-        credentialsInFile.close();
+CredentialsManager::CredentialsManager() {
+    std::cout << "Enter your name:" << std::endl;
+    std::string user = "user";
+    //std::cin >> user;
+    std::cout << "Enter your password" << std::endl;
+    std::string password = "password";
+    //std::cin >> password;
+    std::random_device rd;
+    static thread_local std::mt19937 re{rd()};
+    std::uniform_int_distribution<int> urd(0,255);
+    std::vector<unsigned char> salt;
+    salt.reserve(32);
+    for(int i = 0; i < 32; ++i){
+        salt.emplace_back(static_cast<unsigned char>(char(urd(re))));
     }
-     */
+    hashCredential(password, salt);
+    mServerCredentials = std::make_unique<Credentials>(user, password, salt);
 }
 
-CredentialsManager::CredentialsManager(const std::string &folderRoot):mCredentialsDirectory(folderRoot) {
-    //checkForCredentialsFile();
-}
-
-bool CredentialsManager::compareCredentials(const std::string &body) {
-    std::cout << body << std::endl;
+bool CredentialsManager::compareCredentials(std::string &body) {
     std::string usrAttribute = "usr=";
     std::string pwdAttribute = "\npwd=";
     unsigned long usrLoc = body.find(usrAttribute);
@@ -45,22 +35,47 @@ bool CredentialsManager::compareCredentials(const std::string &body) {
     unsigned long csrfLoc = body.find("\n_csrf=");
     std::string user = body.substr(usrLoc + usrAttribute.length(), (pwdLoc - (usrLoc + usrAttribute.length())) - 1);
     std::string password = body.substr(pwdLoc + pwdAttribute.length(), (csrfLoc - (pwdLoc + pwdAttribute.length())) - 1);
+    OPENSSL_cleanse(&body, body.length());
 
-    /*
-    std::unique_ptr<Credentials> credentials = std::make_unique<Credentials>();
-    std::ifstream credentialsFile(mCredentialsDirectory + "loginInfo.txt");
-    if(credentialsFile.is_open()){
-        cereal::PortableBinaryInputArchive inputArchive(credentialsFile);
-        inputArchive(*credentials);
-        credentialsFile.close();
+    if(user == mServerCredentials->getUser()){
+        std::cout << "User pass" << std::endl;
+        if(compareCredential(password, mServerCredentials->getPassword(), mServerCredentials->getSalt())){
+            std::cout << mServerCredentials->getPassword() << " : " << password << std::endl;
+            cleanseCredentials(user,password);
+            return true;
+        }
+        std::cout << "Password pass" << std::endl;
     }
-    if(!credentials->compareUserName(user)){
-        return false;
-    }
-    else if(!credentials->comparePassword(password)){
-        return false;
-    }
-    */
-    std::string comparison("password");
-    return password == comparison;
+    cleanseCredentials(user,password);
+    return false;
+}
+
+bool CredentialsManager::compareCredential(std::string &sessionCredential,std::string &serverCredential,std::vector<unsigned char> &serverSalt) {
+    hashCredential(sessionCredential,serverSalt);
+    std::cout << sessionCredential << " : " << serverCredential << std::endl;
+    return serverCredential == sessionCredential;
+}
+
+void CredentialsManager::cleanseCredentials(std::string &user, std::string &password) {
+    OPENSSL_cleanse(&user, user.length());
+    OPENSSL_cleanse(&password, password.length());
+}
+
+void CredentialsManager::hashCredential(std::string &credential, std::vector<unsigned char> &salt) {
+    unsigned char digest[32];
+    unsigned char* saltArray = salt.data();
+    std::cout << saltArray << std::endl;
+    char cred[credential.length()+1];
+    strcpy(cred, credential.c_str());
+    std::cout << cred << std::endl;
+    SHA256_CTX context;
+    SHA256_Init(&context);
+    SHA256_Update(&context, cred, credential.length());
+    SHA256_Update(&context, saltArray, 32);
+    SHA256_Final(digest, &context);
+    credential.clear();
+    credential.append(reinterpret_cast<char*>(digest), sizeof(digest));
+    std::cout << credential << std::endl;
+    OPENSSL_cleanse(digest,strlen((char*)digest));
+    OPENSSL_cleanse(cred,strlen(cred));
 }
