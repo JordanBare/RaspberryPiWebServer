@@ -42,7 +42,7 @@ bool CredentialsManager::compareCredentials(std::string &body) {
 
     if(user == mServerCredentials->getUser()){
         std::cout << "User pass" << std::endl;
-        if(compareCredential(password, mServerCredentials->getPassword(), mServerCredentials->getSalt())){
+        if(comparePasswords(password)){
             std::cout << mServerCredentials->getPassword() << " : " << password << std::endl;
             cleanseCredentials(user,password);
             return true;
@@ -53,10 +53,9 @@ bool CredentialsManager::compareCredentials(std::string &body) {
     return false;
 }
 
-bool CredentialsManager::compareCredential(std::string &sessionCredential,std::string &serverCredential,std::vector<unsigned char> &serverSalt) {
-    hashCredential(sessionCredential,serverSalt);
-    std::cout << sessionCredential << " : " << serverCredential << std::endl;
-    return serverCredential == sessionCredential;
+bool CredentialsManager::comparePasswords(std::string &sessionPassword) {
+    hashCredential(sessionPassword,mServerCredentials->getSalt());
+    return mServerCredentials->getPassword() == sessionPassword;
 }
 
 void CredentialsManager::cleanseCredentials(std::string &user, std::string &password) {

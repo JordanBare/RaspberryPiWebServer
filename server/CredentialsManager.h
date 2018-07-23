@@ -14,7 +14,7 @@ public:
     bool compareCredentials(std::string &body);
 private:
     void cleanseCredentials(std::string &user, std::string &password);
-    bool compareCredential(std::string &sessionCredential,std::string &serverCredential,std::vector<unsigned char> &salt);
+    bool comparePasswords(std::string &sessionPassword);
     void hashCredential(std::string &credential, std::vector<unsigned char> &salt);
     std::unique_ptr<Credentials> mServerCredentials;
 };
