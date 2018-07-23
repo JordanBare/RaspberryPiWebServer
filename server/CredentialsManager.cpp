@@ -69,7 +69,7 @@ void CredentialsManager::hashCredential(std::string &credential, std::vector<uns
     SHA256_CTX context;
     SHA256_Init(&context);
     SHA256_Update(&context, credential.data(), credential.length());
-    SHA256_Update(&context, salt.data(), 32);
+    SHA256_Update(&context, salt.data(), salt.size());
     SHA256_Final(digest, &context);
     credential.clear();
     credential.append(reinterpret_cast<char*>(digest), sizeof(digest));
