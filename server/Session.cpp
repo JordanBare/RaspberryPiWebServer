@@ -13,14 +13,15 @@ Session::Session(boost::asio::ssl::context  &sslContext,
                  std::unique_ptr<BlogManager> &blogManager,
                  std::unique_ptr<CredentialsManager> &credentialsManager,
                  const std::string &pageRootFolder): mSocket(std::move(socket)),
-                                                               mStream(mSocket, sslContext),
-                                                               mStrand(mSocket.get_executor()),
-                                                               mDeadline(mSocket.get_executor().context(),std::chrono::seconds(60)),
-                                                               mCSRFManager(csrfManager),
-                                                               mBlogManager(blogManager),
-                                                               mCredentialsManager(credentialsManager),
-                                                               mPageRoot(pageRootFolder),
-                                                               mAuthorized(false){}
+                                                     mStream(mSocket, sslContext),
+                                                     mStrand(mSocket.get_executor()),
+                                                     mResponseDeadline(mSocket.get_executor().context(),std::chrono::seconds(60)),
+                                                     mShutdownDeadline(mSocket.get_executor().context(),std::chrono::seconds(30)),
+                                                     mCSRFManager(csrfManager),
+                                                     mBlogManager(blogManager),
+                                                     mCredentialsManager(credentialsManager),
+                                                     mPageRoot(pageRootFolder),
+                                                     mAuthorized(false){}
 
 void Session::run() {
     std::cout << "1: Session created" << std::endl;
@@ -45,21 +46,46 @@ void Session::onHandshake(boost::system::error_code ec) {
     readRequest();
 }
 
-void Session::checkDeadline() {
-    mDeadline.async_wait(std::bind(&Session::onDeadlineCheck,shared_from_this(),std::placeholders::_1));
+void Session::shutdown() {
+    std::cout << "5: Closing" << std::endl;
+    startShutdownTimer();
+    mStream.async_shutdown(boost::asio::bind_executor(
+            mStrand,
+            std::bind(&Session::onShutdown,
+                      shared_from_this(),
+                      std::placeholders::_1)));
+}void Session::onShutdown(boost::system::error_code ec) {
+    if(ec){
+        printErrorCode(ec);
+    }
+    std::cout << "Connection is closed" << std::endl;
+    mShutdownDeadline.cancel();
 }
 
-void Session::onDeadlineCheck(boost::system::error_code ec) {
+void Session::startResponseTimer() {
+    mResponseDeadline.async_wait(std::bind(&Session::onResponseTimerFinish,shared_from_this(),std::placeholders::_1));
+}
+
+void Session::onResponseTimerFinish(boost::system::error_code ec) {
     if(!ec){
         std::cout << "Timer expired" << std::endl;
         mCSRFManager->removeToken(mCSRFToken);
-        close();
+        shutdown();
     }
+}
+
+void Session::startShutdownTimer() {
+    mShutdownDeadline.async_wait(std::bind(&Session::onShutdownTimerFinish,shared_from_this(),std::placeholders::_1));
+}
+
+void Session::onShutdownTimerFinish(boost::system::error_code ec) {
+    printErrorCode(ec);
+    mStream.lowest_layer().close();
 }
 
 void Session::readRequest() {
     mRequest = {};
-    checkDeadline();
+    startResponseTimer();
     std::cout << "3: Reading request" << std::endl;
     boost::beast::http::async_read(mStream,
                                    mBuffer,
@@ -75,12 +101,12 @@ void Session::handleReadRequest(boost::system::error_code ec, std::size_t bytes_
     boost::ignore_unused(bytes_transferred);
     if(ec == boost::beast::http::error::end_of_stream){
         std::cout << "End of Stream" << std::endl;
-        close();
+        shutdown();
         return;
     } if(ec.value() == 335544539){
         std::cout << "Short Read Error" << std::endl;
-        mDeadline.cancel();
-        close();
+        mResponseDeadline.cancel();
+        shutdown();
         return;
     }
     std::cout << "Successful Read!" << std::endl;
@@ -101,10 +127,10 @@ void Session::writeResponse() {
 
 void Session::handleWriteResponse(boost::system::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
-    mDeadline.cancel();
+    mResponseDeadline.cancel();
     if(ec){
         printErrorCode(ec);
-        close();
+        shutdown();
         return;
     }
     mResponse = {};
@@ -138,22 +164,6 @@ bool Session::forbiddenCheck() const {
     return mRequest.target().empty() ||
            mRequest.target()[0] != '/' ||
            mRequest.target().find("..") != boost::beast::string_view::npos;
-}
-
-void Session::close() {
-    std::cout << "5: Closing" << std::endl;
-    mStream.async_shutdown(boost::asio::bind_executor(
-            mStrand,
-            std::bind(&Session::onShutdown,
-                      shared_from_this(),
-                      std::placeholders::_1)));
-}
-
-void Session::onShutdown(boost::system::error_code ec) {
-    if(ec){
-        printErrorCode(ec);
-    }
-    std::cout << "Connection is closed" << std::endl;
 }
 
 std::string Session::readFile(const std::string &resourceFilePath) const {
@@ -261,4 +271,8 @@ void Session::createPostResponse() {
         }
     }
     fillResponseBodyWithFile(resourceFilePath);
+}
+
+Session::~Session() {
+    std::cout << "Session terminated" << std::endl;
 }
