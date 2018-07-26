@@ -1,4 +1,4 @@
-# RasberryPiHTTPSServer
+# RaspberryPiHTTPSServer
 This is a work-in-progress HTTPS Server using Boost.Asio Beast, cereal, OpenSSL, and SQLite. 
 It's in need of several more refactors, and the password calls, HTML and CSS are not final. 
 Note that I'm self-taught for pretty much everything. 
