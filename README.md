@@ -1,5 +1,5 @@
 # RaspberryPiWebServer
-This is a work-in-progress HTTPS Server using Boost.Asio Beast, cereal, OpenSSL, and SQLite. 
+This is a work-in-progress web server using Boost.Asio Beast, cereal, OpenSSL, and SQLite. 
 It's in need of several more refactors, and the password calls, HTML and CSS are not final. 
 Note that I'm self-taught for pretty much everything. 
 My longterm goal is to host this server from home on my Pi. 
